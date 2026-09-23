@@ -6,6 +6,8 @@ from .ai_views import (
     AIIncidentAnalysisView,
 )
 from .views import (
+    FeedbackAnalysisView,
+    FeedbackListCreateView,
     EventIncidentDetailView,
     EventIncidentListCreateView,
     EventListCreateView,
@@ -15,6 +17,16 @@ from .views import (
 
 
 urlpatterns = [
+    path(
+        "<int:event_id>/feedback/",
+        FeedbackListCreateView.as_view(),
+        name="event-feedback",
+    ),
+    path(
+        "<int:event_id>/feedback/analysis/",
+        FeedbackAnalysisView.as_view(),
+        name="event-feedback-analysis",
+    ),
     path("", EventListCreateView.as_view(), name="event-list-create"),
     path(
         "<int:event_id>/tasks/",

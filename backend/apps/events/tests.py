@@ -6,7 +6,13 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from .models import Event, Incident, ReadinessTask
+from .models import (
+    AIFeedbackAnalysis,
+    Feedback,
+    Event,
+    Incident,
+    ReadinessTask,
+)
 
 
 User = get_user_model()
@@ -666,4 +672,316 @@ class AIIncidentAnalysisAPITests(APITestCase):
 
         return patch(
             "apps.events.ai_views.analyze_incident"
+        )
+
+
+class FeedbackAPITests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="feedback_user",
+            password="testpass123",
+        )
+
+        self.event = Event.objects.create(
+            organizer=self.user,
+            name="Feedback Test Event",
+            category=Event.Category.CONFERENCE,
+            description="Test event for feedback.",
+            date="2026-10-01",
+            start_time="09:00:00",
+            end_time="17:00:00",
+            event_format=Event.EventFormat.PHYSICAL,
+            venue="Test Venue",
+            status=Event.Status.PUBLISHED,
+        )
+
+        self.client.force_authenticate(user=self.user)
+
+    def test_submit_feedback(self):
+        response = self.client.post(
+            f"/api/events/{self.event.id}/feedback/",
+            {
+                "rating": 5,
+                "comment": "The event was very informative.",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["rating"], 5)
+        self.assertEqual(
+            response.data["comment"],
+            "The event was very informative.",
+        )
+        self.assertEqual(response.data["attendee"], self.user.id)
+        self.assertEqual(response.data["event"], self.event.id)
+
+    def test_list_feedback_for_event(self):
+        Feedback.objects.create(
+            event=self.event,
+            attendee=self.user,
+            rating=4,
+            comment="Good event.",
+        )
+
+        response = self.client.get(
+            f"/api/events/{self.event.id}/feedback/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["rating"], 4)
+
+    def test_feedback_rating_must_be_between_one_and_five(self):
+        response = self.client.post(
+            f"/api/events/{self.event.id}/feedback/",
+            {
+                "rating": 6,
+                "comment": "Invalid rating.",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_feedback_requires_authentication(self):
+        self.client.force_authenticate(user=None)
+
+        response = self.client.post(
+            f"/api/events/{self.event.id}/feedback/",
+            {
+                "rating": 5,
+                "comment": "Unauthenticated feedback.",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+
+class AIFeedbackAnalysisAPITests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="feedback-organizer",
+            password="test-password",
+        )
+
+        self.other_user = User.objects.create_user(
+            username="other-feedback-organizer",
+            password="test-password",
+        )
+
+        self.client.force_authenticate(user=self.user)
+
+        self.event = Event.objects.create(
+            organizer=self.user,
+            name="Feedback Test Event",
+            category="conference",
+            date=timezone.localdate() + timedelta(days=10),
+            start_time="09:00:00",
+            end_time="17:00:00",
+            venue="UCU Mukono",
+        )
+
+        self.other_event = Event.objects.create(
+            organizer=self.other_user,
+            name="Other Feedback Event",
+            category="conference",
+            date=timezone.localdate() + timedelta(days=10),
+            start_time="09:00:00",
+            end_time="17:00:00",
+            venue="Other Venue",
+        )
+
+        self.ai_result = {
+            "themes": [
+                {
+                    "theme": "Venue experience",
+                    "description": "Attendees mentioned the venue positively.",
+                    "frequency": 2,
+                },
+                {
+                    "theme": "Session timing",
+                    "description": "Some attendees raised concerns about timing.",
+                    "frequency": 1,
+                },
+            ],
+            "concerns_summary": (
+                "Attendees had some concerns about session timing."
+            ),
+            "suggested_improvements": [
+                "Review session scheduling.",
+                "Allow more time between sessions.",
+            ],
+        }
+
+    def mock_analyze_feedback(self):
+        from unittest.mock import patch
+
+        return patch("apps.events.views.analyze_feedback")
+
+    def test_ai_feedback_analysis_successfully_creates_analysis(self):
+        Feedback.objects.create(
+            event=self.event,
+            attendee=self.user,
+            rating=4,
+            comment="The venue was good, but some sessions felt rushed.",
+        )
+
+        with self.mock_analyze_feedback() as mock_analysis:
+            mock_analysis.return_value = self.ai_result
+
+            response = self.client.post(
+                f"/api/events/{self.event.id}/feedback/analysis/",
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data["themes"],
+            self.ai_result["themes"],
+        )
+        self.assertEqual(
+            response.data["concerns_summary"],
+            self.ai_result["concerns_summary"],
+        )
+        self.assertEqual(
+            response.data["suggested_improvements"],
+            self.ai_result["suggested_improvements"],
+        )
+        self.assertEqual(
+            response.data["analysis_type"],
+            "AI-generated analysis",
+        )
+
+        mock_analysis.assert_called_once()
+
+        analysis = AIFeedbackAnalysis.objects.get(
+            event=self.event
+        )
+
+        self.assertEqual(
+            analysis.themes,
+            self.ai_result["themes"],
+        )
+
+    def test_empty_feedback_returns_empty_analysis(self):
+        response = self.client.post(
+            f"/api/events/{self.event.id}/feedback/analysis/",
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["themes"], [])
+        self.assertEqual(response.data["concerns_summary"], "")
+        self.assertEqual(response.data["suggested_improvements"], [])
+        self.assertEqual(
+            response.data["analysis_type"],
+            "AI-generated analysis",
+        )
+        self.assertEqual(
+            response.data["message"],
+            "No attendee feedback is available for analysis.",
+        )
+
+        self.assertTrue(
+            AIFeedbackAnalysis.objects.filter(
+                event=self.event
+            ).exists()
+        )
+
+    def test_ai_service_failure_is_handled_gracefully(self):
+        from unittest.mock import patch
+
+        from .services.ai_feedback_analysis import AIServiceError
+
+        Feedback.objects.create(
+            event=self.event,
+            attendee=self.user,
+            rating=3,
+            comment="The event was okay.",
+        )
+
+        with patch(
+            "apps.events.views.analyze_feedback",
+            side_effect=AIServiceError("AI service unavailable"),
+        ):
+            response = self.client.post(
+                f"/api/events/{self.event.id}/feedback/analysis/",
+                format="json",
+            )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+        self.assertEqual(
+            response.data["analysis_type"],
+            "AI-generated analysis",
+        )
+        self.assertEqual(
+            response.data["error_message"],
+            "AI service unavailable",
+        )
+
+        analysis = AIFeedbackAnalysis.objects.get(
+            event=self.event
+        )
+
+        self.assertEqual(
+            analysis.error_message,
+            "AI service unavailable",
+        )
+
+    def test_organizer_can_retrieve_ai_feedback_analysis(self):
+        analysis = AIFeedbackAnalysis.objects.create(
+            event=self.event,
+            themes=[
+                {
+                    "theme": "Venue",
+                    "description": "Positive venue feedback.",
+                    "frequency": 3,
+                }
+            ],
+            concerns_summary="Some attendees requested better scheduling.",
+            suggested_improvements=[
+                "Improve session scheduling.",
+            ],
+        )
+
+        response = self.client.get(
+            f"/api/events/{self.event.id}/feedback/analysis/",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["id"], analysis.id)
+        self.assertEqual(response.data["event"], self.event.id)
+        self.assertEqual(
+            response.data["themes"],
+            analysis.themes,
+        )
+        self.assertEqual(
+            response.data["concerns_summary"],
+            analysis.concerns_summary,
+        )
+        self.assertEqual(
+            response.data["suggested_improvements"],
+            analysis.suggested_improvements,
+        )
+        self.assertEqual(
+            response.data["analysis_type"],
+            "AI-generated analysis",
+        )
+
+    def test_user_cannot_access_another_organizers_feedback_analysis(self):
+        response = self.client.get(
+            f"/api/events/{self.other_event.id}/feedback/analysis/",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
         )
