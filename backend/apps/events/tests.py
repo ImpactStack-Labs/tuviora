@@ -457,3 +457,213 @@ class IncidentAPITests(APITestCase):
             response.status_code,
             status.HTTP_404_NOT_FOUND,
         )
+
+
+class AIIncidentAnalysisAPITests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="ai-organizer",
+            password="test-password",
+        )
+
+        self.other_user = User.objects.create_user(
+            username="other-ai-organizer",
+            password="test-password",
+        )
+
+        self.client.force_authenticate(user=self.user)
+
+        self.event = Event.objects.create(
+            organizer=self.user,
+            name="AI Test Event",
+            category="conference",
+            date=timezone.localdate() + timedelta(days=10),
+            start_time="09:00:00",
+            end_time="17:00:00",
+            venue="UCU Mukono",
+        )
+
+        self.other_event = Event.objects.create(
+            organizer=self.other_user,
+            name="Other AI Test Event",
+            category="conference",
+            date=timezone.localdate() + timedelta(days=10),
+            start_time="09:00:00",
+            end_time="17:00:00",
+            venue="Other Venue",
+        )
+
+        self.incident = Incident.objects.create(
+            event=self.event,
+            title="Internet connection failure",
+            description=(
+                "The main event venue has lost its internet connection."
+            ),
+            category=Incident.Category.NETWORK,
+            severity=Incident.Severity.MEDIUM,
+            reported_by=self.user,
+        )
+
+        self.other_incident = Incident.objects.create(
+            event=self.other_event,
+            title="Power outage",
+            description="The other venue has lost power.",
+            category=Incident.Category.POWER,
+            severity=Incident.Severity.HIGH,
+            reported_by=self.other_user,
+        )
+
+        self.ai_result = {
+            "classification": "network connectivity outage",
+            "suggested_severity": "high",
+            "priority": "urgent",
+            "recommended_actions": [
+                "Contact the network provider.",
+                "Check the venue network equipment.",
+                "Prepare an attendee communication.",
+            ],
+            "draft_message": (
+                "We are currently experiencing a network issue at the venue. "
+                "Our team is working to resolve it."
+            ),
+        }
+
+    def test_ai_analysis_successfully_creates_recommendation(self):
+        with self.mock_analyze_incident() as mock_analysis:
+            mock_analysis.return_value = self.ai_result
+
+            response = self.client.post(
+                f"/api/events/incidents/{self.incident.id}/ai-analysis/",
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data["classification"],
+            "network connectivity outage",
+        )
+        self.assertEqual(
+            response.data["suggested_severity"],
+            "high",
+        )
+        self.assertEqual(
+            response.data["priority"],
+            "urgent",
+        )
+        self.assertEqual(
+            response.data["approval_status"],
+            "pending",
+        )
+        self.assertEqual(
+            response.data["analysis_type"],
+            "AI recommendation — not a verified fact",
+        )
+        self.assertEqual(
+            response.data["draft_message"],
+            self.ai_result["draft_message"],
+        )
+
+    def test_ai_service_failure_is_handled_gracefully(self):
+        from unittest.mock import patch
+
+        from .services.ai_incident_analysis import AIServiceError
+
+        with patch(
+            "apps.events.ai_views.analyze_incident",
+            side_effect=AIServiceError("AI service unavailable"),
+        ):
+            response = self.client.post(
+                f"/api/events/incidents/{self.incident.id}/ai-analysis/",
+                format="json",
+            )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+        self.assertEqual(
+            response.data["detail"],
+            "AI incident analysis is currently unavailable.",
+        )
+
+    def test_organizer_can_retrieve_ai_analysis(self):
+        from .models import AIIncidentAnalysis
+
+        analysis = AIIncidentAnalysis.objects.create(
+            incident=self.incident,
+            classification="network connectivity outage",
+            suggested_severity="high",
+            priority="urgent",
+            recommended_actions=[
+                "Contact the network provider.",
+            ],
+            draft_message="We are experiencing a network issue.",
+        )
+
+        response = self.client.get(
+            f"/api/events/incidents/{self.incident.id}/ai-analysis/detail/",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["id"], analysis.id)
+        self.assertEqual(response.data["incident_id"], self.incident.id)
+
+    def test_organizer_can_approve_ai_recommendation(self):
+        from .models import AIIncidentAnalysis
+
+        analysis = AIIncidentAnalysis.objects.create(
+            incident=self.incident,
+            classification="network connectivity outage",
+            suggested_severity="high",
+            priority="urgent",
+            recommended_actions=[
+                "Contact the network provider.",
+            ],
+            draft_message="We are experiencing a network issue.",
+        )
+
+        response = self.client.post(
+            f"/api/events/incidents/{self.incident.id}/ai-analysis/approve/",
+            format="json",
+        )
+
+        analysis.refresh_from_db()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            analysis.approval_status,
+            AIIncidentAnalysis.ApprovalStatus.APPROVED,
+        )
+        self.assertEqual(analysis.approved_by, self.user)
+        self.assertIsNotNone(analysis.approved_at)
+
+    def test_user_cannot_access_another_organizers_ai_analysis(self):
+        response = self.client.post(
+            f"/api/events/incidents/{self.other_incident.id}/ai-analysis/",
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+    def test_unauthenticated_user_cannot_request_ai_analysis(self):
+        self.client.force_authenticate(user=None)
+
+        response = self.client.post(
+            f"/api/events/incidents/{self.incident.id}/ai-analysis/",
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+    def mock_analyze_incident(self):
+        from unittest.mock import patch
+
+        return patch(
+            "apps.events.ai_views.analyze_incident"
+        )
