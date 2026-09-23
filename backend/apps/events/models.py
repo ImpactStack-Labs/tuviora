@@ -118,3 +118,123 @@ class Event(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ReadinessTask(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        IN_PROGRESS = "in_progress", "In Progress"
+        COMPLETED = "completed", "Completed"
+
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name="readiness_tasks",
+    )
+
+    title = models.CharField(max_length=255)
+
+    description = models.TextField(blank=True)
+
+    assignee = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_readiness_tasks",
+    )
+
+    deadline = models.DateTimeField()
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+
+    completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["deadline", "-created_at"]
+
+    def __str__(self):
+        return self.title
+
+
+class Incident(models.Model):
+    class Category(models.TextChoices):
+        NETWORK = "network", "Network"
+        POWER = "power", "Power"
+        VENUE = "venue", "Venue"
+        SECURITY = "security", "Security"
+        ATTENDANCE = "attendance", "Attendance"
+        PAYMENT = "payment", "Payment"
+        TECHNICAL = "technical", "Technical"
+        OTHER = "other", "Other"
+
+    class Severity(models.TextChoices):
+        LOW = "low", "Low"
+        MEDIUM = "medium", "Medium"
+        HIGH = "high", "High"
+        CRITICAL = "critical", "Critical"
+
+    class Status(models.TextChoices):
+        OPEN = "open", "Open"
+        IN_PROGRESS = "in_progress", "In Progress"
+        RESOLVED = "resolved", "Resolved"
+        CLOSED = "closed", "Closed"
+
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name="incidents",
+    )
+
+    title = models.CharField(max_length=255)
+
+    description = models.TextField()
+
+    category = models.CharField(
+        max_length=30,
+        choices=Category.choices,
+    )
+
+    severity = models.CharField(
+        max_length=20,
+        choices=Severity.choices,
+        default=Severity.MEDIUM,
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.OPEN,
+    )
+
+    reported_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reported_incidents",
+    )
+
+    resolved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.title

@@ -1,7 +1,7 @@
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Event
+from .models import Event, Incident, ReadinessTask
 
 
 class EventSerializer(serializers.ModelSerializer):
@@ -172,3 +172,120 @@ class EventSerializer(serializers.ModelSerializer):
             )
 
         return attrs
+
+
+class ReadinessTaskSerializer(serializers.ModelSerializer):
+    event = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = ReadinessTask
+
+        fields = [
+            "id",
+            "event",
+            "title",
+            "description",
+            "assignee",
+            "deadline",
+            "status",
+            "completed_at",
+            "created_at",
+            "updated_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "event",
+            "completed_at",
+            "created_at",
+            "updated_at",
+        ]
+
+    def validate(self, attrs):
+        status = attrs.get(
+            "status",
+            getattr(
+                self.instance,
+                "status",
+                ReadinessTask.Status.PENDING,
+            ),
+        )
+
+        deadline = attrs.get(
+            "deadline",
+            getattr(self.instance, "deadline", None),
+        )
+
+        if (
+            deadline
+            and deadline < timezone.now()
+            and status != ReadinessTask.Status.COMPLETED
+        ):
+            raise serializers.ValidationError(
+                {
+                    "deadline": (
+                        "Deadline cannot be in the past unless "
+                        "the task is completed."
+                    )
+                }
+            )
+
+        return attrs
+
+    def update(self, instance, validated_data):
+        status = validated_data.get("status", instance.status)
+
+        if status == ReadinessTask.Status.COMPLETED:
+            validated_data["completed_at"] = (
+                instance.completed_at or timezone.now()
+            )
+        elif status != ReadinessTask.Status.COMPLETED:
+            validated_data["completed_at"] = None
+
+        return super().update(instance, validated_data)
+
+
+class IncidentSerializer(serializers.ModelSerializer):
+    event = serializers.PrimaryKeyRelatedField(read_only=True)
+    reported_by = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = Incident
+
+        fields = [
+            "id",
+            "event",
+            "title",
+            "description",
+            "category",
+            "severity",
+            "status",
+            "reported_by",
+            "resolved_at",
+            "created_at",
+            "updated_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "event",
+            "reported_by",
+            "resolved_at",
+            "created_at",
+            "updated_at",
+        ]
+
+    def update(self, instance, validated_data):
+        status = validated_data.get("status", instance.status)
+
+        if status in {
+            Incident.Status.RESOLVED,
+            Incident.Status.CLOSED,
+        }:
+            validated_data["resolved_at"] = (
+                instance.resolved_at or timezone.now()
+            )
+        else:
+            validated_data["resolved_at"] = None
+
+        return super().update(instance, validated_data)

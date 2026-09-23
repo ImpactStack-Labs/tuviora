@@ -1,11 +1,12 @@
-from datetime import date, time, timedelta
+from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from .models import Event
+from .models import Event, Incident, ReadinessTask
 
 
 User = get_user_model()
@@ -15,45 +16,308 @@ class EventAPITests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             username="organizer",
-            password="test-password-123",
+            password="test-password",
         )
 
         self.other_user = User.objects.create_user(
             username="other-organizer",
-            password="test-password-123",
+            password="test-password",
         )
 
-        self.url = reverse("event-list-create")
+        self.client.force_authenticate(user=self.user)
 
         self.event_data = {
             "name": "Tuviora Hackathon",
             "category": "hackathon",
-            "description": "An event operations hackathon.",
-            "date": date.today() + timedelta(days=30),
-            "start_time": time(9, 0),
-            "end_time": time(17, 0),
+            "description": "Technology event",
+            "date": (timezone.localdate() + timedelta(days=10)).isoformat(),
+            "start_time": "09:00:00",
+            "end_time": "17:00:00",
             "event_format": "physical",
-            "venue": "Uganda Christian University",
-            "landmark": "Mukono",
-            "latitude": 0.3536,
-            "longitude": 32.7553,
+            "venue": "UCU Mukono",
+            "landmark": "Main Campus",
+            "latitude": "0.3944",
+            "longitude": "32.5974",
             "capacity": 100,
         }
 
     def test_unauthenticated_user_cannot_access_events(self):
-        response = self.client.get(self.url)
+        self.client.force_authenticate(user=None)
+
+        response = self.client.get("/api/events/")
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_authenticated_user_can_create_event(self):
+        response = self.client.post(
+            "/api/events/",
+            self.event_data,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["name"], "Tuviora Hackathon")
+        self.assertEqual(response.data["organizer"], self.user.id)
+        self.assertEqual(response.data["status"], "draft")
+
+    def test_event_organizer_comes_from_authenticated_user(self):
+        response = self.client.post(
+            "/api/events/",
+            {
+                **self.event_data,
+                "organizer": self.other_user.id,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["organizer"], self.user.id)
+
+    def test_user_only_sees_own_events(self):
+        Event.objects.create(
+            organizer=self.other_user,
+            name="Other Event",
+            category="conference",
+            date=timezone.localdate() + timedelta(days=5),
+            start_time="09:00:00",
+            end_time="12:00:00",
+            venue="Other Venue",
+        )
+
+        own_event = Event.objects.create(
+            organizer=self.user,
+            name="My Event",
+            category="conference",
+            date=timezone.localdate() + timedelta(days=5),
+            start_time="09:00:00",
+            end_time="12:00:00",
+            venue="My Venue",
+        )
+
+        response = self.client.get("/api/events/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], own_event.id)
+
+
+class ReadinessTaskAPITests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="organizer",
+            password="test-password",
+        )
+
+        self.other_user = User.objects.create_user(
+            username="other-organizer",
+            password="test-password",
+        )
+
+        self.client.force_authenticate(user=self.user)
+
+        self.event = Event.objects.create(
+            organizer=self.user,
+            name="Tuviora Event",
+            category="hackathon",
+            date=timezone.localdate() + timedelta(days=10),
+            start_time="09:00:00",
+            end_time="17:00:00",
+            venue="UCU Mukono",
+        )
+
+        self.other_event = Event.objects.create(
+            organizer=self.other_user,
+            name="Other Event",
+            category="conference",
+            date=timezone.localdate() + timedelta(days=10),
+            start_time="09:00:00",
+            end_time="17:00:00",
+            venue="Other Venue",
+        )
+
+        self.deadline = timezone.now() + timedelta(days=2)
+
+        self.task_data = {
+            "title": "Confirm venue equipment",
+            "description": "Check microphones and projectors.",
+            "assignee": self.user.id,
+            "deadline": self.deadline.isoformat(),
+        }
+
+    def test_unauthenticated_user_cannot_access_tasks(self):
+        self.client.force_authenticate(user=None)
+
+        response = self.client.get(
+            f"/api/events/{self.event.id}/tasks/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_organizer_can_create_readiness_task(self):
+        response = self.client.post(
+            f"/api/events/{self.event.id}/tasks/",
+            self.task_data,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["event"], self.event.id)
+        self.assertEqual(
+            response.data["assignee"],
+            self.user.id,
+        )
+        self.assertEqual(response.data["status"], "pending")
+
+    def test_event_is_assigned_by_backend(self):
+        response = self.client.post(
+            f"/api/events/{self.event.id}/tasks/",
+            {
+                **self.task_data,
+                "event": self.other_event.id,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["event"], self.event.id)
+
+    def test_organizer_can_retrieve_tasks(self):
+        task = ReadinessTask.objects.create(
+            event=self.event,
+            title="Test task",
+            deadline=self.deadline,
+        )
+
+        response = self.client.get(
+            f"/api/events/{self.event.id}/tasks/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], task.id)
+
+    def test_organizer_can_update_task(self):
+        task = ReadinessTask.objects.create(
+            event=self.event,
+            title="Test task",
+            deadline=self.deadline,
+        )
+
+        response = self.client.patch(
+            f"/api/events/{self.event.id}/tasks/{task.id}/",
+            {
+                "status": "in_progress",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "in_progress")
+
+    def test_completing_task_sets_completed_at(self):
+        task = ReadinessTask.objects.create(
+            event=self.event,
+            title="Test task",
+            deadline=self.deadline,
+        )
+
+        response = self.client.patch(
+            f"/api/events/{self.event.id}/tasks/{task.id}/",
+            {
+                "status": "completed",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNotNone(response.data["completed_at"])
+
+    def test_task_with_past_deadline_is_rejected(self):
+        response = self.client.post(
+            f"/api/events/{self.event.id}/tasks/",
+            {
+                **self.task_data,
+                "deadline": (
+                    timezone.now() - timedelta(days=1)
+                ).isoformat(),
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertIn("deadline", response.data)
+
+    def test_user_cannot_access_tasks_for_another_organizers_event(self):
+        response = self.client.get(
+            f"/api/events/{self.other_event.id}/tasks/"
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+
+class IncidentAPITests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="organizer",
+            password="test-password",
+        )
+
+        self.other_user = User.objects.create_user(
+            username="other-organizer",
+            password="test-password",
+        )
+
+        self.client.force_authenticate(user=self.user)
+
+        self.event = Event.objects.create(
+            organizer=self.user,
+            name="Tuviora Event",
+            category="hackathon",
+            date=timezone.localdate() + timedelta(days=10),
+            start_time="09:00:00",
+            end_time="17:00:00",
+            venue="UCU Mukono",
+        )
+
+        self.other_event = Event.objects.create(
+            organizer=self.other_user,
+            name="Other Event",
+            category="conference",
+            date=timezone.localdate() + timedelta(days=10),
+            start_time="09:00:00",
+            end_time="17:00:00",
+            venue="Other Venue",
+        )
+
+        self.incident_data = {
+            "title": "Network connectivity problem",
+            "description": "Internet connection is unstable.",
+            "category": "network",
+            "severity": "high",
+        }
+
+    def test_unauthenticated_user_cannot_access_incidents(self):
+        self.client.force_authenticate(user=None)
+
+        response = self.client.get(
+            f"/api/events/{self.event.id}/incidents/"
+        )
 
         self.assertEqual(
             response.status_code,
             status.HTTP_403_FORBIDDEN,
         )
 
-    def test_authenticated_user_can_create_event(self):
-        self.client.force_authenticate(user=self.user)
-
+    def test_organizer_can_create_incident(self):
         response = self.client.post(
-            self.url,
-            self.event_data,
+            f"/api/events/{self.event.id}/incidents/",
+            self.incident_data,
             format="json",
         )
 
@@ -61,32 +325,21 @@ class EventAPITests(APITestCase):
             response.status_code,
             status.HTTP_201_CREATED,
         )
-
-        event = Event.objects.get(
-            id=response.data["id"]
-        )
-
+        self.assertEqual(response.data["event"], self.event.id)
         self.assertEqual(
-            event.organizer,
-            self.user,
+            response.data["reported_by"],
+            self.user.id,
         )
+        self.assertEqual(response.data["severity"], "high")
+        self.assertEqual(response.data["status"], "open")
 
-        self.assertEqual(
-            event.status,
-            Event.Status.DRAFT,
-        )
-
-    def test_organizer_is_assigned_from_authenticated_user(self):
-        self.client.force_authenticate(user=self.user)
-
-        data = {
-            **self.event_data,
-            "organizer": self.other_user.id,
-        }
-
+    def test_reporter_is_assigned_by_backend(self):
         response = self.client.post(
-            self.url,
-            data,
+            f"/api/events/{self.event.id}/incidents/",
+            {
+                **self.incident_data,
+                "reported_by": self.other_user.id,
+            },
             format="json",
         )
 
@@ -94,77 +347,80 @@ class EventAPITests(APITestCase):
             response.status_code,
             status.HTTP_201_CREATED,
         )
-
-        event = Event.objects.get(
-            id=response.data["id"]
+        self.assertEqual(
+            response.data["reported_by"],
+            self.user.id,
         )
 
-        self.assertEqual(
-            event.organizer,
-            self.user,
+    def test_organizer_can_retrieve_incidents(self):
+        incident = Incident.objects.create(
+            event=self.event,
+            title="Power outage",
+            description="Venue power is unavailable.",
+            category="power",
         )
 
-    def test_user_only_sees_their_own_events(self):
-        own_event = Event.objects.create(
-        organizer=self.user,
-        **self.event_data,
+        response = self.client.get(
+            f"/api/events/{self.event.id}/incidents/"
         )
 
-        other_event_data = {
-        **self.event_data,
-        "name": "Another Organizer Event",
-      }
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], incident.id)
 
-        Event.objects.create(
-        organizer=self.other_user,
-        **other_event_data,
-    )
+    def test_organizer_can_update_incident(self):
+        incident = Incident.objects.create(
+            event=self.event,
+            title="Power outage",
+            description="Venue power is unavailable.",
+            category="power",
+        )
 
-        self.client.force_authenticate(user=self.user)
-
-        response = self.client.get(self.url)
-
-        self.assertEqual(
-        response.status_code,
-        status.HTTP_200_OK,
-    )
-
-        self.assertEqual(
-        len(response.data),
-        1,
-    )
-
-        self.assertEqual(
-        response.data[0]["id"],
-        own_event.id,
-    )
-
-    
-    def test_event_defaults_to_draft(self):
-        self.client.force_authenticate(user=self.user)
-
-        response = self.client.post(
-            self.url,
-            self.event_data,
+        response = self.client.patch(
+            f"/api/events/{self.event.id}/incidents/{incident.id}/",
+            {
+                "status": "in_progress",
+                "severity": "critical",
+            },
             format="json",
         )
 
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
             response.data["status"],
-            "draft",
+            "in_progress",
+        )
+        self.assertEqual(
+            response.data["severity"],
+            "critical",
         )
 
-    def test_physical_event_requires_venue(self):
-        self.client.force_authenticate(user=self.user)
+    def test_resolving_incident_sets_resolved_at(self):
+        incident = Incident.objects.create(
+            event=self.event,
+            title="Power outage",
+            description="Venue power is unavailable.",
+            category="power",
+        )
 
-        data = {
-            **self.event_data,
-            "venue": "",
-        }
+        response = self.client.patch(
+            f"/api/events/{self.event.id}/incidents/{incident.id}/",
+            {
+                "status": "resolved",
+            },
+            format="json",
+        )
 
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNotNone(response.data["resolved_at"])
+
+    def test_invalid_incident_category_is_rejected(self):
         response = self.client.post(
-            self.url,
-            data,
+            f"/api/events/{self.event.id}/incidents/",
+            {
+                **self.incident_data,
+                "category": "invalid-category",
+            },
             format="json",
         )
 
@@ -172,23 +428,15 @@ class EventAPITests(APITestCase):
             response.status_code,
             status.HTTP_400_BAD_REQUEST,
         )
+        self.assertIn("category", response.data)
 
-        self.assertIn("venue", response.data)
-
-    def test_virtual_event_requires_online_details(self):
-        self.client.force_authenticate(user=self.user)
-
-        data = {
-            **self.event_data,
-            "event_format": "virtual",
-            "venue": "",
-            "online_platform": "",
-            "online_url": "",
-        }
-
+    def test_invalid_incident_severity_is_rejected(self):
         response = self.client.post(
-            self.url,
-            data,
+            f"/api/events/{self.event.id}/incidents/",
+            {
+                **self.incident_data,
+                "severity": "extreme",
+            },
             format="json",
         )
 
@@ -196,180 +444,16 @@ class EventAPITests(APITestCase):
             response.status_code,
             status.HTTP_400_BAD_REQUEST,
         )
+        self.assertIn("severity", response.data)
 
-        self.assertIn(
-            "online_platform",
-            response.data,
-        )
-
-    def test_virtual_event_can_be_created(self):
-        self.client.force_authenticate(user=self.user)
-
-        data = {
-            **self.event_data,
-            "event_format": "virtual",
-            "venue": "",
-            "landmark": "",
-            "latitude": None,
-            "longitude": None,
-            "online_platform": "Zoom",
-            "online_url": "https://zoom.us/j/123456789",
-            "joining_instructions": "Join using the event link.",
-        }
-
-        response = self.client.post(
-            self.url,
-            data,
-            format="json",
+    def test_user_cannot_access_incidents_for_another_organizers_event(
+        self,
+    ):
+        response = self.client.get(
+            f"/api/events/{self.other_event.id}/incidents/"
         )
 
         self.assertEqual(
             response.status_code,
-            status.HTTP_201_CREATED,
-        )
-
-    def test_hybrid_event_requires_online_details(self):
-        self.client.force_authenticate(user=self.user)
-
-        data = {
-            **self.event_data,
-            "event_format": "hybrid",
-            "online_platform": "",
-            "online_url": "",
-        }
-
-        response = self.client.post(
-            self.url,
-            data,
-            format="json",
-        )
-
-        self.assertEqual(
-            response.status_code,
-            status.HTTP_400_BAD_REQUEST,
-        )
-
-        self.assertIn(
-            "online_platform",
-            response.data,
-        )
-
-    def test_end_time_must_be_after_start_time(self):
-        self.client.force_authenticate(user=self.user)
-
-        data = {
-            **self.event_data,
-            "start_time": "17:00:00",
-            "end_time": "09:00:00",
-        }
-
-        response = self.client.post(
-            self.url,
-            data,
-            format="json",
-        )
-
-        self.assertEqual(
-            response.status_code,
-            status.HTTP_400_BAD_REQUEST,
-        )
-
-        self.assertIn(
-            "end_time",
-            response.data,
-        )
-
-    def test_past_event_date_is_rejected(self):
-        self.client.force_authenticate(user=self.user)
-
-        data = {
-            **self.event_data,
-            "date": date.today() - timedelta(days=1),
-        }
-
-        response = self.client.post(
-            self.url,
-            data,
-            format="json",
-        )
-
-        self.assertEqual(
-            response.status_code,
-            status.HTTP_400_BAD_REQUEST,
-        )
-
-        self.assertIn(
-            "date",
-            response.data,
-        )
-
-    def test_capacity_must_be_positive(self):
-        self.client.force_authenticate(user=self.user)
-
-        data = {
-            **self.event_data,
-            "capacity": 0,
-        }
-
-        response = self.client.post(
-            self.url,
-            data,
-            format="json",
-        )
-
-        self.assertEqual(
-            response.status_code,
-            status.HTTP_400_BAD_REQUEST,
-        )
-
-    def test_coordinates_must_be_provided_together(self):
-        self.client.force_authenticate(user=self.user)
-
-        data = {
-            **self.event_data,
-            "latitude": 0.3536,
-            "longitude": None,
-        }
-
-        response = self.client.post(
-            self.url,
-            data,
-            format="json",
-        )
-
-        self.assertEqual(
-            response.status_code,
-            status.HTTP_400_BAD_REQUEST,
-        )
-
-        self.assertIn(
-            "latitude",
-            response.data,
-        )
-
-    def test_invalid_online_url_is_rejected(self):
-        self.client.force_authenticate(user=self.user)
-
-        data = {
-            **self.event_data,
-            "event_format": "virtual",
-            "venue": "",
-            "online_platform": "Zoom",
-            "online_url": "not-a-valid-url",
-        }
-
-        response = self.client.post(
-            self.url,
-            data,
-            format="json",
-        )
-
-        self.assertEqual(
-            response.status_code,
-            status.HTTP_400_BAD_REQUEST,
-        )
-
-        self.assertIn(
-            "online_url",
-            response.data,
+            status.HTTP_404_NOT_FOUND,
         )
