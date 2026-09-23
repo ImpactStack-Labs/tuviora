@@ -6,6 +6,8 @@ import Sidebar from '../components/organizer/Sidebar'
 import { navigation } from '../components/organizer/navigation'
 import OrganizerOverview from '../pages/OrganizerOverview'
 import OrganizerModule from '../pages/OrganizerModule'
+import MyEvents from '../pages/MyEvents'
+import CreateEvent from '../pages/CreateEvent'
 
 export default function OrganizerLayout() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -66,7 +68,9 @@ export default function OrganizerLayout() {
         <main className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8">
           <Routes>
             <Route index element={<OrganizerOverview />} />
-            {navigation.slice(1).map(({ name, path }) => (
+            <Route path="events" element={<MyEvents />} />
+            <Route path="events/new" element={<CreateEvent />} />
+            {navigation.slice(1).filter(({ path }) => path !== 'events').map(({ name, path }) => (
               <Route
                 key={path}
                 path={path}
