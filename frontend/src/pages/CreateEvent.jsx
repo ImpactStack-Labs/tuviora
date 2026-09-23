@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, CalendarDays, Info } from 'lucide-react'
+import { ArrowLeft, CalendarDays, ExternalLink, Info, MapPin } from 'lucide-react'
+import VenueMap from '../components/maps/VenueMap'
+import VenueSearch from '../components/maps/VenueSearch'
 
 const initialForm = {
   name: '',
@@ -9,7 +11,14 @@ const initialForm = {
   date: '',
   startTime: '',
   endTime: '',
+  eventFormat: 'physical',
+  onlinePlatform: '',
+  onlineUrl: '',
+  joiningInstructions: '',
   venue: '',
+  landmark: '',
+  latitude: null,
+  longitude: null,
   capacity: '',
 }
 
@@ -18,11 +27,52 @@ const fieldClass =
 
 export default function CreateEvent() {
   const [form, setForm] = useState(initialForm)
+  const hasPhysicalLocation =
+    form.eventFormat === 'physical' ||
+    form.eventFormat === 'hybrid'
+
+  const hasVirtualLocation =
+    form.eventFormat === 'virtual' ||
+    form.eventFormat === 'hybrid'
+
 
   function updateField(event) {
     const { name, value } = event.target
-    setForm((previous) => ({ ...previous, [name]: value }))
+
+    setForm((previous) => {
+      // Clear old coordinates when the venue details change.
+      // This prevents directions pointing to a previous venue.
+      if (name === 'venue' || name === 'landmark') {
+        return {
+          ...previous,
+          [name]: value,
+          latitude: null,
+          longitude: null,
+        }
+      }
+
+      return {
+        ...previous,
+        [name]: value,
+      }
+    })
   }
+
+  function updateLocation({ latitude, longitude }) {
+    setForm((previous) => ({
+      ...previous,
+      latitude,
+      longitude,
+    }))
+  }
+
+  const hasLocation =
+    Number.isFinite(form.latitude) &&
+    Number.isFinite(form.longitude)
+
+  const directionsUrl = hasLocation
+    ? `https://www.google.com/maps/dir/?api=1&destination=${form.latitude}%2C${form.longitude}`
+    : null
 
   function handleSubmit(event) {
     event.preventDefault()
@@ -180,6 +230,30 @@ export default function CreateEvent() {
             </div>
 
             <div className="sm:col-span-2">
+              <label htmlFor="eventFormat" className="font-semibold">
+                Event format *
+              </label>
+              <select
+                id="eventFormat"
+                name="eventFormat"
+                value={form.eventFormat}
+                onChange={updateField}
+                required
+                className={fieldClass}
+              >
+                <option value="physical">Physical event</option>
+                <option value="virtual">Virtual event</option>
+                <option value="hybrid">Hybrid event</option>
+              </select>
+              <p className="mt-2 text-sm text-[#647064]">
+                Choose whether attendees will join in person,
+                online or both.
+              </p>
+            </div>
+
+            {hasPhysicalLocation && (
+              <>
+            <div className="sm:col-span-2">
               <label htmlFor="venue" className="font-semibold">
                 Venue or location *
               </label>
@@ -192,6 +266,68 @@ export default function CreateEvent() {
                 required
                 className={fieldClass}
               />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label htmlFor="landmark" className="font-semibold">
+                Nearby landmark
+              </label>
+              <input
+                id="landmark"
+                name="landmark"
+                value={form.landmark}
+                onChange={updateField}
+                placeholder="e.g. Opposite the main entrance"
+                className={fieldClass}
+              />
+            </div>
+
+            <div className="sm:col-span-2 space-y-4">
+              <div className="flex items-start gap-3">
+                <span className="rounded-xl bg-[#EDF3E8] p-3 text-[#58761B]">
+                  <MapPin size={22} />
+                </span>
+                <div>
+                  <h3 className="font-bold text-[#1A3F22]">
+                    Pin your event venue
+                  </h3>
+                  <p className="mt-1 text-sm text-[#647064]">
+                    Click the map to mark the exact entrance or
+                    meeting point. You can zoom and move the map
+                    before choosing a location.
+                  </p>
+                </div>
+              </div>
+
+              <VenueSearch
+                venue={form.venue}
+                landmark={form.landmark}
+                onLocationSelect={updateLocation}
+              />
+
+              <VenueMap
+                latitude={form.latitude}
+                longitude={form.longitude}
+                onLocationChange={updateLocation}
+              />
+
+              {hasLocation && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#F2F6EF] p-4">
+                  <p className="text-sm text-[#1A3F22]">
+                    Venue location selected. Check that the pin
+                    marks the correct entrance.
+                  </p>
+                  <a
+                    href={directionsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#1A3F22] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#315C38]"
+                  >
+                    Preview directions
+                    <ExternalLink size={16} />
+                  </a>
+                </div>
+              )}
             </div>
 
             <div className="sm:col-span-2">
@@ -210,6 +346,76 @@ export default function CreateEvent() {
                 className={fieldClass}
               />
             </div>
+              </>
+            )}
+
+            {hasVirtualLocation && (
+              <div className="sm:col-span-2 space-y-5 rounded-2xl border border-[#DCE5D8] bg-[#F7FAF5] p-5">
+                <div>
+                  <h3 className="text-lg font-bold text-[#1A3F22]">
+                    Virtual event details
+                  </h3>
+                  <p className="mt-1 text-sm text-[#647064]">
+                    Provide the information attendees need to join online.
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="onlinePlatform" className="font-semibold">
+                    Online platform *
+                  </label>
+                  <select
+                    id="onlinePlatform"
+                    name="onlinePlatform"
+                    value={form.onlinePlatform}
+                    onChange={updateField}
+                    required={hasVirtualLocation}
+                    className={fieldClass}
+                  >
+                    <option value="">Select a platform</option>
+                    <option value="zoom">Zoom</option>
+                    <option value="google_meet">Google Meet</option>
+                    <option value="microsoft_teams">Microsoft Teams</option>
+                    <option value="youtube_live">YouTube Live</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="onlineUrl" className="font-semibold">
+                    Meeting or streaming link *
+                  </label>
+                  <input
+                    id="onlineUrl"
+                    name="onlineUrl"
+                    type="url"
+                    value={form.onlineUrl}
+                    onChange={updateField}
+                    placeholder="https://..."
+                    required={hasVirtualLocation}
+                    className={fieldClass}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="joiningInstructions"
+                    className="font-semibold"
+                  >
+                    Joining instructions
+                  </label>
+                  <textarea
+                    id="joiningInstructions"
+                    name="joiningInstructions"
+                    value={form.joiningInstructions}
+                    onChange={updateField}
+                    rows={3}
+                    placeholder="Optional joining instructions"
+                    className={fieldClass}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
