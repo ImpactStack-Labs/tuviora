@@ -238,3 +238,150 @@ class Incident(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class AIIncidentAnalysis(models.Model):
+    class Priority(models.TextChoices):
+        LOW = "low", "Low"
+        MEDIUM = "medium", "Medium"
+        HIGH = "high", "High"
+        URGENT = "urgent", "Urgent"
+
+    class ApprovalStatus(models.TextChoices):
+        PENDING = "pending", "Pending Approval"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+        FAILED = "failed", "Failed"
+
+    incident = models.OneToOneField(
+        Incident,
+        on_delete=models.CASCADE,
+        related_name="ai_analysis",
+    )
+
+    classification = models.CharField(max_length=30)
+
+    suggested_severity = models.CharField(
+        max_length=20,
+        choices=Incident.Severity.choices,
+    )
+
+    priority = models.CharField(
+        max_length=20,
+        choices=Priority.choices,
+    )
+
+    recommended_actions = models.JSONField(
+        default=list,
+    )
+
+    draft_message = models.TextField()
+
+    approval_status = models.CharField(
+        max_length=20,
+        choices=ApprovalStatus.choices,
+        default=ApprovalStatus.PENDING,
+    )
+
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="approved_ai_incident_analyses",
+    )
+
+    approved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    error_message = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"AI analysis for incident #{self.incident_id}"
+
+
+class Feedback(models.Model):
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name="feedback",
+    )
+
+    attendee = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="submitted_feedback",
+    )
+
+    rating = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(1),
+            MaxValueValidator(5),
+        ],
+    )
+
+    comment = models.TextField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Feedback for {self.event.name}"
+
+
+class AIFeedbackAnalysis(models.Model):
+    event = models.OneToOneField(
+        Event,
+        on_delete=models.CASCADE,
+        related_name="ai_feedback_analysis",
+    )
+
+    themes = models.JSONField(
+        default=list,
+    )
+
+    concerns_summary = models.TextField(
+        blank=True,
+    )
+
+    suggested_improvements = models.JSONField(
+        default=list,
+    )
+
+    analysis_type = models.CharField(
+        max_length=100,
+        default="AI-generated analysis",
+    )
+
+    error_message = models.TextField(
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"AI feedback analysis for {self.event.name}"
