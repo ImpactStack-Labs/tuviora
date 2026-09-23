@@ -1,3 +1,4 @@
+from .models import Feedback
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -289,3 +290,35 @@ class IncidentSerializer(serializers.ModelSerializer):
             validated_data["resolved_at"] = None
 
         return super().update(instance, validated_data)
+
+
+class FeedbackSerializer(serializers.ModelSerializer):
+    attendee = serializers.PrimaryKeyRelatedField(
+        read_only=True,
+    )
+
+    class Meta:
+        model = Feedback
+        fields = [
+            "id",
+            "event",
+            "attendee",
+            "rating",
+            "comment",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "event",
+            "attendee",
+            "created_at",
+            "updated_at",
+        ]
+
+    def validate_rating(self, value):
+        if value is not None and not 1 <= value <= 5:
+            raise serializers.ValidationError(
+                "Rating must be between 1 and 5."
+            )
+        return value
