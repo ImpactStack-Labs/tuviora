@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+from .events import describe_event, get_public_event
 from .languages import LANGUAGES, LANGUAGE_SELECTION
 from .menus import get_message
 
@@ -129,6 +130,24 @@ def voice_callback(request):
             "3": "registration_assistance",
         }
 
+        if digits == "1":
+            cache.set(
+                key,
+                {"stage": "event_id", "language": language},
+                SESSION_TIMEOUT,
+            )
+
+            prompts = {
+                "eng": "Enter your event ID, followed by hash. Press star to return to the main menu.",
+                "swa": "Tafadhali ingiza nambari ya tukio lako, kisha alama ya reli. Bonyeza nyota kurudi kwenye menyu kuu.",
+                "lug": "Yingiza ennamba y'omukolo gwo, oluvannyuma onyige akabonero ka hash. Nyiga emmunyeenye okuddayo ku menu enkulu.",
+            }
+
+            return voice_response(
+                prompts.get(language, prompts["eng"]),
+                callback_url(request),
+            )
+
         if digits in options:
             cache.set(
                 key,
@@ -145,6 +164,55 @@ def voice_callback(request):
             get_message(language, "invalid")
             + " "
             + get_message(language, "main"),
+            callback_url(request),
+        )
+
+    if stage == "event_id":
+        if digits == "*":
+            cache.set(
+                key,
+                {"stage": "main", "language": language},
+                SESSION_TIMEOUT,
+            )
+            return voice_response(
+                get_message(language, "main"),
+                callback_url(request),
+            )
+
+        if digits == "0":
+            cache.delete(key)
+            return voice_response(
+                get_message(language, "goodbye"),
+                finish=True,
+            )
+
+        event = get_public_event(digits)
+
+        if event is None:
+            messages = {
+                "eng": "We could not find that published event. Please try again.",
+                "swa": "Hatukupata tukio hilo lililochapishwa. Tafadhali jaribu tena.",
+                "lug": "Tetulabye mukolo ogwo ogulangiriddwa. Gezaako nate.",
+            }
+            return voice_response(
+                messages.get(language, messages["eng"]),
+                callback_url(request),
+            )
+
+        cache.set(
+            key,
+            {"stage": "detail", "language": language},
+            SESSION_TIMEOUT,
+        )
+
+        return voice_response(
+            describe_event(event, language)
+            + " "
+            + {
+                "eng": "Press 9 to return to the main menu.",
+                "swa": "Bonyeza 9 kurudi kwenye menyu kuu.",
+                "lug": "Nyiga 9 okuddayo ku menu enkulu.",
+            }.get(language, "Press 9 to return to the main menu."),
             callback_url(request),
         )
 
