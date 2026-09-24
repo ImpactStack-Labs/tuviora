@@ -10,6 +10,7 @@ import MyEvents from '../pages/MyEvents'
 import CreateEvent from '../pages/CreateEvent'
 import EventReadiness from '../pages/EventReadiness'
 import EventTeam from '../pages/EventTeam'
+import EventRegistrations from '../pages/EventRegistrations'
 
 export default function OrganizerLayout() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -74,7 +75,8 @@ export default function OrganizerLayout() {
             <Route path="events/new" element={<CreateEvent />} />
             <Route path="readiness" element={<EventReadiness />} />
             <Route path="team" element={<EventTeam />} />
-            {navigation.slice(1).filter(({ path }) => path !== 'events' && path !== 'readiness' && path !== 'team').map(({ name, path }) => (
+            <Route path="registration" element={<EventRegistrations />} />
+            {navigation.slice(1).filter(({ path }) => path !== 'events' && path !== 'readiness' && path !== 'team' && path !== 'registration').map(({ name, path }) => (
               <Route
                 key={path}
                 path={path}

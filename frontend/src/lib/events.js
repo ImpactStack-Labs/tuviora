@@ -36,3 +36,7 @@ export function publishEvent(eventId) {
     method: 'POST',
   })
 }
+
+export function getEventRegistrations(eventId) {
+  return apiRequest(`/api/events/${eventId}/registrations/`)
+}
