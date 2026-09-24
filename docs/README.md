@@ -2,6 +2,11 @@
 
 This directory contains technical documentation for Tuviora.
 
+## Product
+
+[Project brief](product-brief/README.md) — problem statement, MVP scope, user
+journeys, roles and revenue model.
+
 ## Architecture
 
 [Architecture documentation](architecture/README.md)
@@ -11,6 +16,8 @@ This directory contains technical documentation for Tuviora.
 [API documentation](api/README.md)
 
 ## Integrations
+
+[Payments (MarzPay)](payments/README.md)
 
 [SMS integration](sms-integration.md)
 
