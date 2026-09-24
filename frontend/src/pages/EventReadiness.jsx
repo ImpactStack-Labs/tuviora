@@ -43,6 +43,42 @@ function formatDateTime(value) {
 function TaskCard({ task, eventId, onUpdated, teamMembers }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  // TUVIORA_TASK_REASSIGNMENT_V1
+  const [editingAssignment, setEditingAssignment] = useState(false)
+  const [selectedAssignee, setSelectedAssignee] = useState(
+    task.assignee == null ? '' : String(task.assignee),
+  )
+
+  async function saveAssignment() {
+    if (saving) return
+
+    const nextAssignee = selectedAssignee
+      ? Number(selectedAssignee)
+      : null
+
+    if (nextAssignee === task.assignee) {
+      setEditingAssignment(false)
+      return
+    }
+
+    setSaving(true)
+    setError('')
+
+    try {
+      const updated = await updateReadinessTask(
+        eventId,
+        task.id,
+        { assignee: nextAssignee },
+      )
+
+      onUpdated(updated)
+      setEditingAssignment(false)
+    } catch (err) {
+      setError(formatApiError(err))
+    } finally {
+      setSaving(false)
+    }
+  }
 
   async function changeStatus(status) {
     if (saving || status === task.status) return
@@ -92,14 +128,82 @@ function TaskCard({ task, eventId, onUpdated, teamMembers }) {
               </p>
             )}
 
-            <p className="mt-3 text-sm text-[#647064]">
-              Assigned to:{' '}
-              <span className="font-semibold text-[#1A3F22]">
-                {teamMembers.find(
-                  (member) => member.user_id === task.assignee,
-                )?.username || (task.assignee ? 'Team member' : 'Unassigned')}
-              </span>
-            </p>
+            <div className="mt-3 space-y-3">
+              <p className="text-sm text-[#647064]">
+                Assigned to:{' '}
+                <span className="font-semibold text-[#1A3F22]">
+                  {teamMembers.find(
+                    (member) => member.user_id === task.assignee,
+                  )?.username || (task.assignee ? 'Team member' : 'Unassigned')}
+                </span>
+              </p>
+
+              {!editingAssignment ? (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => {
+                    setSelectedAssignee(
+                      task.assignee == null ? '' : String(task.assignee),
+                    )
+                    setError('')
+                    setEditingAssignment(true)
+                  }}
+                  className="text-sm font-semibold text-[#58761B] underline underline-offset-4 hover:text-[#1A3F22]"
+                >
+                  Edit assignment
+                </button>
+              ) : (
+                <div className="space-y-3 rounded-xl border border-[#DDE6D6] bg-[#F8FAF5] p-3">
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-semibold text-[#1A3F22]">
+                      Assign to
+                    </span>
+                    <select
+                      value={selectedAssignee}
+                      disabled={saving}
+                      onChange={(event) =>
+                        setSelectedAssignee(event.target.value)
+                      }
+                      className="w-full rounded-lg border border-[#DDE6D6] bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="">Unassigned</option>
+                      {teamMembers.map((member) => (
+                        <option
+                          key={member.user_id}
+                          value={member.user_id}
+                        >
+                          {member.username || member.email} ({member.role})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={saveAssignment}
+                      className="rounded-lg bg-[#1A3F22] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                    >
+                      {saving ? 'Saving...' : 'Save assignment'}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => {
+                        setEditingAssignment(false)
+                        setError('')
+                      }}
+                      className="rounded-lg border border-[#DDE6D6] bg-white px-4 py-2 text-sm font-semibold"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <p className="mt-3 flex items-center gap-2 text-sm text-[#647064]">
               <CalendarDays size={15} />
