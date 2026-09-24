@@ -30,6 +30,10 @@ from .views import (
     EventTaskDetailView,
     EventTaskListCreateView,
 )
+from .ticket_views import (
+    EventTicketTypeDetailView,
+    EventTicketTypeListCreateView,
+)
 
 
 urlpatterns = [
@@ -62,6 +66,16 @@ urlpatterns = [
         "<int:event_id>/registrations/me/cancel/",
         CancelEventRegistrationView.as_view(),
         name="cancel-event-registration",
+    ),
+    path(
+        "<int:event_id>/ticket-types/",
+        EventTicketTypeListCreateView.as_view(),
+        name="event-ticket-types",
+    ),
+    path(
+        "<int:event_id>/ticket-types/<int:pk>/",
+        EventTicketTypeDetailView.as_view(),
+        name="event-ticket-type-detail",
     ),
 
     path(
