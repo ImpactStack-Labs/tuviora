@@ -590,3 +590,59 @@ class EventRegistration(models.Model):
             f"{self.user} - {self.event} "
             f"({self.status})"
         )
+
+
+class Payment(models.Model):
+    class Method(models.TextChoices):
+        MOBILE_MONEY = "mobile_money", "Mobile Money"
+        CARD = "card", "Card"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        PROCESSING = "processing", "Processing"
+        COMPLETED = "completed", "Completed"
+        FAILED = "failed", "Failed"
+        CANCELLED = "cancelled", "Cancelled"
+
+    registration = models.ForeignKey(
+        EventRegistration,
+        on_delete=models.CASCADE,
+        related_name="payments",
+    )
+
+    reference = models.CharField(max_length=64, unique=True)
+
+    provider_transaction_id = models.CharField(
+        max_length=64,
+        blank=True,
+    )
+
+    method = models.CharField(
+        max_length=20,
+        choices=Method.choices,
+    )
+
+    phone_number = models.CharField(max_length=20, blank=True)
+
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    currency = models.CharField(max_length=3)
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+
+    redirect_url = models.URLField(blank=True)
+
+    raw_response = models.JSONField(default=dict, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.reference} ({self.status})"
