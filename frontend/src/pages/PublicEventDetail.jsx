@@ -38,6 +38,7 @@ export default function PublicEventDetail() {
   const [registration, setRegistration] = useState(null)
   const [checkingSession, setCheckingSession] = useState(true)
   const [registrationError, setRegistrationError] = useState('')
+  const [selectedTicketTypeId, setSelectedTicketTypeId] = useState(null)
   const [working, setWorking] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -65,6 +66,9 @@ export default function PublicEventDetail() {
 
         const selected = await response.json()
         setEvent(selected)
+        if (selected.ticket_types?.length) {
+          setSelectedTicketTypeId(selected.ticket_types[0].id)
+        }
       } catch (err) {
         if (!controller.signal.aborted) {
           setError(err.message)
@@ -131,7 +135,7 @@ export default function PublicEventDetail() {
     setRegistrationError('')
 
     try {
-      const result = await registerForEvent(eventId)
+      const result = await registerForEvent(eventId, selectedTicketTypeId)
       setRegistration(result)
     } catch (err) {
       setRegistrationError(
@@ -258,7 +262,47 @@ export default function PublicEventDetail() {
                       Signed in as {user.first_name || user.username}.
                     </p>
 
-                    {registration?.status === 'confirmed' ? (
+                    {event.ticket_types?.length > 0 &&
+                      !registration && (
+                        <fieldset className="mt-6 space-y-3">
+                          <legend className="font-semibold">
+                            Choose a ticket
+                          </legend>
+                          {event.ticket_types.map((ticket) => (
+                            <label
+                              key={ticket.id}
+                              className="flex items-center justify-between rounded-xl border border-[#DCE5D8] p-4"
+                            >
+                              <span className="flex items-center gap-3">
+                                <input
+                                  type="radio"
+                                  name="ticket_type"
+                                  checked={selectedTicketTypeId === ticket.id}
+                                  onChange={() =>
+                                    setSelectedTicketTypeId(ticket.id)
+                                  }
+                                />
+                                {ticket.name}
+                              </span>
+                              <span className="font-semibold">
+                                {Number(ticket.price) > 0
+                                  ? `${ticket.price} ${ticket.currency}`
+                                  : 'Free'}
+                              </span>
+                            </label>
+                          ))}
+                        </fieldset>
+                      )}
+
+                    {registration?.status === 'payment_pending' ? (
+                      <div
+                        role="status"
+                        className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
+                      >
+                        Your spot is reserved. Payment collection is
+                        coming soon — you'll be notified how to pay.
+                      </div>
+                    ) : registration?.status === 'confirmed' ? (
                       <>
                         <div
                           role="status"
