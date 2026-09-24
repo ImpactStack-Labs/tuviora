@@ -20,6 +20,9 @@ dist/
 .DS_Store
 *.log
 
+# Isolated worktrees for plan execution
+.worktrees/
+
 # Private local backups
 .local-backups/
 
