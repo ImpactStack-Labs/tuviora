@@ -263,7 +263,7 @@ export default function PublicEventDetail() {
                     </p>
 
                     {event.ticket_types?.length > 0 &&
-                      !registration && (
+                      (!registration || registration.status === 'cancelled') && (
                         <fieldset className="mt-6 space-y-3">
                           <legend className="font-semibold">
                             Choose a ticket
