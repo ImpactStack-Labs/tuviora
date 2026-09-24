@@ -68,9 +68,12 @@ class EventRegistrationView(APIView):
                             status=status.HTTP_400_BAD_REQUEST,
                         )
 
-                    ticket_type = active_ticket_types.filter(
-                        pk=ticket_type_id
-                    ).first()
+                    try:
+                        ticket_type = active_ticket_types.filter(
+                            pk=ticket_type_id
+                        ).first()
+                    except (ValueError, TypeError):
+                        ticket_type = None
 
                     if ticket_type is None:
                         return Response(

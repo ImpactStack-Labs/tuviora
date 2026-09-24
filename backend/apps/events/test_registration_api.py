@@ -298,6 +298,15 @@ class PriceRegistrationAPITests(APITestCase):
             response.status_code, status.HTTP_400_BAD_REQUEST
         )
 
+    def test_non_numeric_ticket_type_id_is_rejected(self):
+        response = self.client.post(
+            self.registration_url,
+            {"ticket_type_id": "not-a-number"},
+        )
+        self.assertEqual(
+            response.status_code, status.HTTP_400_BAD_REQUEST
+        )
+
     def test_payment_pending_counts_toward_capacity(self):
         self.event.capacity = 1
         self.event.save(update_fields=["capacity"])
