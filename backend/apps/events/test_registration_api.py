@@ -8,7 +8,7 @@ from rest_framework.test import APITestCase
 
 from apps.accounts.models import SMSPreference
 
-from .models import Event, EventRegistration
+from .models import Event, EventRegistration, TicketType
 
 
 User = get_user_model()
@@ -215,3 +215,105 @@ class EventRegistrationAPITests(APITestCase):
                 sms_enabled=True,
             ).exists()
         )
+
+
+class PriceRegistrationAPITests(APITestCase):
+    def setUp(self):
+        self.organizer = User.objects.create_user(
+            username="priced_registration_organizer",
+            password="TestPassword123!",
+        )
+        self.attendee = User.objects.create_user(
+            username="priced_registration_attendee",
+            password="TestPassword123!",
+        )
+        self.event = Event.objects.create(
+            organizer=self.organizer,
+            name="Tuviora Priced Registration Test",
+            category=Event.Category.CONFERENCE,
+            date=timezone.localdate() + timedelta(days=7),
+            start_time="09:00",
+            end_time="17:00",
+            venue="Kampala",
+            status=Event.Status.PUBLISHED,
+        )
+        self.ticket = TicketType.objects.create(
+            event=self.event,
+            name="Standard",
+            price="25000.00",
+        )
+        self.free_ticket = TicketType.objects.create(
+            event=self.event,
+            name="Complimentary",
+            price="0.00",
+        )
+        self.registration_url = (
+            f"/api/events/{self.event.id}/registrations/"
+        )
+        self.client.force_authenticate(user=self.attendee)
+
+    def test_registering_for_priced_ticket_is_payment_pending(self):
+        response = self.client.post(
+            self.registration_url,
+            {"ticket_type_id": self.ticket.id},
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["status"], "payment_pending")
+        self.assertEqual(response.data["amount_due"], "25000.00")
+        self.assertEqual(response.data["currency"], "UGX")
+
+    def test_registering_for_zero_price_ticket_is_confirmed(self):
+        response = self.client.post(
+            self.registration_url,
+            {"ticket_type_id": self.free_ticket.id},
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["status"], "confirmed")
+
+    def test_ticket_type_is_required_when_event_has_ticket_types(self):
+        response = self.client.post(self.registration_url)
+        self.assertEqual(
+            response.status_code, status.HTTP_400_BAD_REQUEST
+        )
+
+    def test_ticket_type_from_another_event_is_rejected(self):
+        other_event = Event.objects.create(
+            organizer=self.organizer,
+            name="Other Event",
+            category=Event.Category.CONFERENCE,
+            date=timezone.localdate() + timedelta(days=7),
+            start_time="09:00",
+            end_time="17:00",
+            venue="Entebbe",
+            status=Event.Status.PUBLISHED,
+        )
+        other_ticket = TicketType.objects.create(
+            event=other_event, name="Standard", price="10000.00"
+        )
+        response = self.client.post(
+            self.registration_url,
+            {"ticket_type_id": other_ticket.id},
+        )
+        self.assertEqual(
+            response.status_code, status.HTTP_400_BAD_REQUEST
+        )
+
+    def test_payment_pending_counts_toward_capacity(self):
+        self.event.capacity = 1
+        self.event.save(update_fields=["capacity"])
+
+        self.client.post(
+            self.registration_url, {"ticket_type_id": self.ticket.id}
+        )
+
+        second_attendee = User.objects.create_user(
+            username="priced_registration_attendee_2",
+            password="TestPassword123!",
+        )
+        self.client.force_authenticate(user=second_attendee)
+
+        response = self.client.post(
+            self.registration_url, {"ticket_type_id": self.ticket.id}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)

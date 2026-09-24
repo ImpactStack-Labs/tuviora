@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Event, EventRegistration
+from .models import Event, EventRegistration, TicketType
 from .registration_serializers import (
     EventRegistrationSerializer,
     MyRegistrationsSerializer,
@@ -52,29 +52,71 @@ class EventRegistrationView(APIView):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
+                active_ticket_types = TicketType.objects.filter(
+                    event=event, is_active=True
+                )
+                ticket_type = None
+                amount_due = None
+                currency = ""
+
+                if active_ticket_types.exists():
+                    ticket_type_id = request.data.get("ticket_type_id")
+
+                    if not ticket_type_id:
+                        return Response(
+                            {"detail": "Select a ticket type."},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
+                    ticket_type = active_ticket_types.filter(
+                        pk=ticket_type_id
+                    ).first()
+
+                    if ticket_type is None:
+                        return Response(
+                            {
+                                "detail": (
+                                    "Select a valid ticket type "
+                                    "for this event."
+                                )
+                            },
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
+                    amount_due = ticket_type.price
+                    currency = ticket_type.currency
+
+                registration_status = (
+                    EventRegistration.Status.CONFIRMED
+                    if amount_due is None or amount_due == 0
+                    else EventRegistration.Status.PAYMENT_PENDING
+                )
+
                 existing = EventRegistration.objects.filter(
                     event=event,
                     user=request.user,
                 ).first()
 
-                if existing and existing.status == (
-                    EventRegistration.Status.CONFIRMED
+                if existing and existing.status in (
+                    EventRegistration.Status.CONFIRMED,
+                    EventRegistration.Status.PAYMENT_PENDING,
                 ):
                     return Response(
                         {"detail": "You are already registered."},
                         status=status.HTTP_409_CONFLICT,
                     )
 
-                confirmed_count = (
-                    EventRegistration.objects.filter(
-                        event=event,
-                        status=EventRegistration.Status.CONFIRMED,
-                    ).count()
-                )
+                held_count = EventRegistration.objects.filter(
+                    event=event,
+                    status__in=[
+                        EventRegistration.Status.CONFIRMED,
+                        EventRegistration.Status.PAYMENT_PENDING,
+                    ],
+                ).count()
 
                 if (
                     event.capacity is not None
-                    and confirmed_count >= event.capacity
+                    and held_count >= event.capacity
                 ):
                     return Response(
                         {"detail": "This event is fully booked."},
@@ -82,17 +124,28 @@ class EventRegistrationView(APIView):
                     )
 
                 if existing:
-                    existing.status = (
-                        EventRegistration.Status.CONFIRMED
-                    )
+                    existing.ticket_type = ticket_type
+                    existing.amount_due = amount_due
+                    existing.currency = currency
+                    existing.status = registration_status
                     existing.save(
-                        update_fields=["status", "updated_at"]
+                        update_fields=[
+                            "ticket_type",
+                            "amount_due",
+                            "currency",
+                            "status",
+                            "updated_at",
+                        ]
                     )
                     registration = existing
                 else:
                     registration = EventRegistration.objects.create(
                         event=event,
                         user=request.user,
+                        ticket_type=ticket_type,
+                        amount_due=amount_due,
+                        currency=currency,
+                        status=registration_status,
                     )
 
         except IntegrityError:
