@@ -42,6 +42,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 INSTALLED_APPS = [
     'apps.voice_services.apps.VoiceServicesConfig',
+    'apps.ussd.apps.USSDConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
