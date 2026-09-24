@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -30,6 +31,12 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+
 
 # Application definition
 
@@ -44,6 +51,7 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'apps.events',
+    'apps.accounts.apps.AccountsConfig',
 ]
 
 MIDDLEWARE = [
@@ -127,8 +135,56 @@ STATIC_URL = 'static/'
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+
+# Transactional email: Brevo SMTP
+#
+# In local development, use console email until SMTP credentials
+# are configured in backend/.env.
+#
+# Never place SMTP credentials directly in this file.
+
+BREVO_SMTP_READY = all(
+    os.getenv(name)
+    for name in (
+        "EMAIL_HOST_USER",
+        "EMAIL_HOST_PASSWORD",
+        "DEFAULT_FROM_EMAIL",
+    )
+)
+
+if BREVO_SMTP_READY:
+    MAILERS = {
+        "default": {
+            "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+            "OPTIONS": {
+                "host": os.getenv(
+                    "EMAIL_HOST",
+                    "smtp-relay.brevo.com",
+                ),
+                "port": int(os.getenv("EMAIL_PORT", "587")),
+                "username": os.environ["EMAIL_HOST_USER"],
+                "password": os.environ["EMAIL_HOST_PASSWORD"],
+                "use_tls": True,
+                "timeout": 20,
+            },
+        },
+    }
+else:
+    MAILERS = {
+        "default": {
+            "BACKEND": "django.core.mail.backends.console.EmailBackend",
+        },
+    }
+
+DEFAULT_FROM_EMAIL = os.getenv(
+    "DEFAULT_FROM_EMAIL",
+    "Tuviora <noreply@tuviora.local>",
+)
+
+
+
+# Public frontend URL used to generate verification links.
+FRONTEND_BASE_URL = "http://localhost:5173"
+
+# Sender displayed in development emails.
+

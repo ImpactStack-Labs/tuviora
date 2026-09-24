@@ -14,6 +14,7 @@ export const navigation = [
   { name: 'Overview', path: '', icon: LayoutDashboard },
   { name: 'My Events', path: 'events', icon: CalendarDays },
   { name: 'Event Readiness', path: 'readiness', icon: ClipboardCheck },
+  { name: 'Event Team', path: 'team', icon: Users },
   { name: 'Registration', path: 'registration', icon: Users },
   { name: 'Attendance', path: 'attendance', icon: ScanLine },
   { name: 'Payments', path: 'payments', icon: CreditCard },

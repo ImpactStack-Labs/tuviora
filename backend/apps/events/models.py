@@ -42,6 +42,11 @@ class Event(models.Model):
     description = models.TextField(blank=True)
 
     date = models.DateField()
+    timezone_name = models.CharField(
+        max_length=64,
+        default="Africa/Kampala",
+    )
+
     start_time = models.TimeField()
     end_time = models.TimeField()
 
@@ -118,6 +123,97 @@ class Event(models.Model):
 
     def __str__(self):
         return self.name
+
+
+
+class EventMembership(models.Model):
+    class Role(models.TextChoices):
+        MANAGER = "manager", "Event Manager"
+        MEMBER = "member", "Team Member"
+
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name="team_memberships",
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="event_memberships",
+    )
+
+    role = models.CharField(
+        max_length=20,
+        choices=Role.choices,
+        default=Role.MEMBER,
+    )
+
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["event", "user"],
+                name="unique_event_team_member",
+            ),
+        ]
+        ordering = ["joined_at"]
+
+    def __str__(self):
+        return f"{self.user} - {self.event} ({self.role})"
+
+
+class EventInvitation(models.Model):
+    class Role(models.TextChoices):
+        MANAGER = "manager", "Event Manager"
+        MEMBER = "member", "Team Member"
+
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name="team_invitations",
+    )
+
+    email = models.EmailField()
+
+    role = models.CharField(
+        max_length=20,
+        choices=Role.choices,
+        default=Role.MEMBER,
+    )
+
+    token_hash = models.CharField(
+        max_length=64,
+        unique=True,
+    )
+
+    invited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="sent_event_invitations",
+    )
+
+    expires_at = models.DateTimeField()
+
+    accepted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    revoked_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.email} - {self.event}"
 
 
 class ReadinessTask(models.Model):

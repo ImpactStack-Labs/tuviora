@@ -1,5 +1,7 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
+from rest_framework.views import APIView
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -7,6 +9,7 @@ from .models import (
     AIFeedbackAnalysis,
     Feedback,
     Event,
+    EventMembership,
     Incident,
     ReadinessTask,
 )
@@ -35,41 +38,133 @@ class EventListCreateView(generics.ListCreateAPIView):
         serializer.save(organizer=self.request.user)
 
 
+
+class EventPublishView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, event_id):
+        event = get_object_or_404(
+            Event,
+            pk=event_id,
+            organizer=request.user,
+        )
+
+        if event.status != Event.Status.DRAFT:
+            return Response(
+                {"detail": "Only draft events can be published."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        event.status = Event.Status.PUBLISHED
+        event.save(update_fields=["status", "updated_at"])
+
+        return Response(EventSerializer(event).data)
+
+
+# TEAM_TASK_ACCESS_V1
+def task_access_for_user(event, user):
+    """Resolve permissions separately for each event."""
+    if event.organizer_id == user.pk:
+        return "organizer"
+
+    membership = EventMembership.objects.filter(
+        event=event,
+        user=user,
+    ).first()
+
+    if membership is None:
+        return None
+
+    return membership.role
+
+
+def accessible_task_event(event_id, user):
+    """Return an event only if this user belongs to its team."""
+    from django.http import Http404
+
+    event = get_object_or_404(Event, id=event_id)
+
+    if task_access_for_user(event, user) is None:
+        raise Http404
+
+    return event
+
+
 class EventTaskListCreateView(generics.ListCreateAPIView):
     serializer_class = ReadinessTaskSerializer
     permission_classes = [IsAuthenticated]
 
     def get_event(self):
-        return get_object_or_404(
-            Event,
-            id=self.kwargs["event_id"],
-            organizer=self.request.user,
+        return accessible_task_event(
+            self.kwargs["event_id"],
+            self.request.user,
         )
 
     def get_queryset(self):
         event = self.get_event()
+        role = task_access_for_user(event, self.request.user)
 
-        return (
-            ReadinessTask.objects
-            .filter(event=event)
-            .select_related("event", "assignee")
-        )
+        if role is None:
+            # Do not reveal tasks belonging to unrelated events.
+            return ReadinessTask.objects.none()
+
+        tasks = ReadinessTask.objects.filter(
+            event=event,
+        ).select_related("event", "assignee")
+
+        if role == EventMembership.Role.MEMBER:
+            return tasks.filter(assignee=self.request.user)
+
+        return tasks
 
     def perform_create(self, serializer):
-        serializer.save(event=self.get_event())
+        event = self.get_event()
+
+        if event.organizer_id != self.request.user.pk:
+            raise PermissionDenied(
+                "Only the event organizer can create tasks."
+            )
+
+        serializer.save(event=event)
 
 
 class EventTaskDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = ReadinessTaskSerializer
     permission_classes = [IsAuthenticated]
+    http_method_names = ["get", "patch", "head", "options"]
 
     def get_queryset(self):
-        return (
-            ReadinessTask.objects
-            .filter(event__id=self.kwargs["event_id"])
-            .filter(event__organizer=self.request.user)
-            .select_related("event", "assignee")
+        event = accessible_task_event(
+            self.kwargs["event_id"],
+            self.request.user,
         )
+
+        role = task_access_for_user(event, self.request.user)
+
+        if role is None:
+            return ReadinessTask.objects.none()
+
+        tasks = ReadinessTask.objects.filter(
+            event=event,
+        ).select_related("event", "assignee")
+
+        if role == EventMembership.Role.MEMBER:
+            return tasks.filter(assignee=self.request.user)
+
+        return tasks
+
+    def partial_update(self, request, *args, **kwargs):
+        task = self.get_object()
+
+        if task.event.organizer_id != request.user.pk:
+            # Managers and members can update progress, but cannot
+            # change the task title, deadline, or assignee.
+            if set(request.data) != {"status"}:
+                raise PermissionDenied(
+                    "You can update task status only."
+                )
+
+        return super().partial_update(request, *args, **kwargs)
 
 
 class EventIncidentListCreateView(generics.ListCreateAPIView):
