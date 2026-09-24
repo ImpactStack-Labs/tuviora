@@ -10,6 +10,8 @@ import {
 } from 'lucide-react'
 
 import { getEvents, formatApiError } from '../lib/events'
+import { getEventTeam } from '../lib/team'
+// TUVIORA_TASK_ASSIGNMENT_UI_V1
 import {
   createReadinessTask,
   getReadinessTasks,
@@ -26,6 +28,7 @@ const EMPTY_FORM = {
   title: '',
   description: '',
   deadline: '',
+  assignee: '',
 }
 
 function formatDateTime(value) {
@@ -37,9 +40,45 @@ function formatDateTime(value) {
   }).format(new Date(value))
 }
 
-function TaskCard({ task, eventId, onUpdated }) {
+function TaskCard({ task, eventId, onUpdated, teamMembers }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  // TUVIORA_TASK_REASSIGNMENT_V1
+  const [editingAssignment, setEditingAssignment] = useState(false)
+  const [selectedAssignee, setSelectedAssignee] = useState(
+    task.assignee == null ? '' : String(task.assignee),
+  )
+
+  async function saveAssignment() {
+    if (saving) return
+
+    const nextAssignee = selectedAssignee
+      ? Number(selectedAssignee)
+      : null
+
+    if (nextAssignee === task.assignee) {
+      setEditingAssignment(false)
+      return
+    }
+
+    setSaving(true)
+    setError('')
+
+    try {
+      const updated = await updateReadinessTask(
+        eventId,
+        task.id,
+        { assignee: nextAssignee },
+      )
+
+      onUpdated(updated)
+      setEditingAssignment(false)
+    } catch (err) {
+      setError(formatApiError(err))
+    } finally {
+      setSaving(false)
+    }
+  }
 
   async function changeStatus(status) {
     if (saving || status === task.status) return
@@ -89,6 +128,83 @@ function TaskCard({ task, eventId, onUpdated }) {
               </p>
             )}
 
+            <div className="mt-3 space-y-3">
+              <p className="text-sm text-[#647064]">
+                Assigned to:{' '}
+                <span className="font-semibold text-[#1A3F22]">
+                  {teamMembers.find(
+                    (member) => member.user_id === task.assignee,
+                  )?.username || (task.assignee ? 'Team member' : 'Unassigned')}
+                </span>
+              </p>
+
+              {!editingAssignment ? (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => {
+                    setSelectedAssignee(
+                      task.assignee == null ? '' : String(task.assignee),
+                    )
+                    setError('')
+                    setEditingAssignment(true)
+                  }}
+                  className="text-sm font-semibold text-[#58761B] underline underline-offset-4 hover:text-[#1A3F22]"
+                >
+                  Edit assignment
+                </button>
+              ) : (
+                <div className="space-y-3 rounded-xl border border-[#DDE6D6] bg-[#F8FAF5] p-3">
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-semibold text-[#1A3F22]">
+                      Assign to
+                    </span>
+                    <select
+                      value={selectedAssignee}
+                      disabled={saving}
+                      onChange={(event) =>
+                        setSelectedAssignee(event.target.value)
+                      }
+                      className="w-full rounded-lg border border-[#DDE6D6] bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="">Unassigned</option>
+                      {teamMembers.map((member) => (
+                        <option
+                          key={member.user_id}
+                          value={member.user_id}
+                        >
+                          {member.username || member.email} ({member.role})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={saveAssignment}
+                      className="rounded-lg bg-[#1A3F22] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                    >
+                      {saving ? 'Saving...' : 'Save assignment'}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => {
+                        setEditingAssignment(false)
+                        setError('')
+                      }}
+                      className="rounded-lg border border-[#DDE6D6] bg-white px-4 py-2 text-sm font-semibold"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <p className="mt-3 flex items-center gap-2 text-sm text-[#647064]">
               <CalendarDays size={15} />
               Deadline: {formatDateTime(task.deadline)}
@@ -132,6 +248,9 @@ export default function EventReadiness() {
   const [events, setEvents] = useState([])
   const [selectedEventId, setSelectedEventId] = useState('')
   const [tasks, setTasks] = useState([])
+  const [teamMembers, setTeamMembers] = useState([])
+  const [loadingTeam, setLoadingTeam] = useState(false)
+  const [teamError, setTeamError] = useState('')
   const [loadingEvents, setLoadingEvents] = useState(true)
   const [loadingTasks, setLoadingTasks] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -200,6 +319,36 @@ export default function EventReadiness() {
     }
   }, [selectedEventId])
 
+  useEffect(() => {
+    if (!selectedEventId) {
+      setTeamMembers([])
+      return
+    }
+
+    let active = true
+
+    setTeamMembers([])
+    setLoadingTeam(true)
+    setTeamError('')
+    setForm((current) => ({ ...current, assignee: '' }))
+
+    getEventTeam(selectedEventId)
+      .then((data) => {
+        if (!active) return
+        setTeamMembers(Array.isArray(data) ? data : data.results || [])
+      })
+      .catch((err) => {
+        if (active) setTeamError(formatApiError(err))
+      })
+      .finally(() => {
+        if (active) setLoadingTeam(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [selectedEventId])
+
   const selectedEvent = events.find(
     (event) => String(event.id) === selectedEventId,
   )
@@ -233,6 +382,7 @@ export default function EventReadiness() {
         {
           title: form.title.trim(),
           description: form.description.trim(),
+          assignee: form.assignee ? Number(form.assignee) : null,
           deadline: new Date(form.deadline).toISOString(),
           status: 'pending',
         },
@@ -452,6 +602,48 @@ export default function EventReadiness() {
                 </span>
               </label>
 
+              <label className="block">
+                <span className="mb-2 block font-semibold">
+                  Assign to
+                </span>
+
+                <select
+                  value={form.assignee}
+                  disabled={loadingTeam || Boolean(teamError)}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      assignee: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-[#DDE6D6] bg-white px-4 py-3 text-[#1A3F22] disabled:opacity-60"
+                >
+                  <option value="">Unassigned</option>
+                  {teamMembers.map((member) => (
+                    <option key={member.user_id} value={member.user_id}>
+                      {member.username || member.email} ({member.role})
+                    </option>
+                  ))}
+                </select>
+
+                <span className="mt-2 block text-xs text-[#647064]">
+                  Only the organizer and accepted event teammates can
+                  receive tasks.
+                </span>
+              </label>
+
+              {loadingTeam && (
+                <p role="status" className="text-sm text-[#647064]">
+                  Loading event teammates...
+                </p>
+              )}
+
+              {teamError && (
+                <p role="alert" className="text-sm text-red-700">
+                  Could not load teammates: {teamError}
+                </p>
+              )}
+
               {taskError && (
                 <p role="alert" className="text-sm text-red-700">
                   {taskError}
@@ -529,6 +721,7 @@ export default function EventReadiness() {
                     task={task}
                     eventId={selectedEventId}
                     onUpdated={handleUpdated}
+                    teamMembers={teamMembers}
                   />
                 ))}
               </div>
