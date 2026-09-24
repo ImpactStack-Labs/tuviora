@@ -18,6 +18,7 @@ urlpatterns = [
     ),
     path("api/auth/logout/", auth_views.sign_out, name="auth-logout"),
     path("api/voice/", include("apps.voice_services.urls")),
+    path("api/ussd/", include("apps.ussd.urls")),
     path("admin/", admin.site.urls),
     path("api/health/", health_check, name="api-health"),
     path("api/events/", include("apps.events.urls")),
