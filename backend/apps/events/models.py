@@ -481,3 +481,47 @@ class AIFeedbackAnalysis(models.Model):
 
     def __str__(self):
         return f"AI feedback analysis for {self.event.name}"
+
+
+class EventRegistration(models.Model):
+    """An attendee's registration for an event."""
+
+    class Status(models.TextChoices):
+        CONFIRMED = "confirmed", "Confirmed"
+        CANCELLED = "cancelled", "Cancelled"
+
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name="registrations",
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="event_registrations",
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.CONFIRMED,
+    )
+
+    registered_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["event", "user"],
+                name="unique_event_attendee_registration",
+            ),
+        ]
+        ordering = ["-registered_at"]
+
+    def __str__(self):
+        return (
+            f"{self.user} - {self.event} "
+            f"({self.status})"
+        )
