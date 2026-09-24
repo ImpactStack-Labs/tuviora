@@ -4,9 +4,9 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
-from rest_framework.test import APIClient
+from rest_framework.test import APIClient, APITestCase
 
-from .models import Event
+from .models import Event, TicketType
 
 
 class PublicEventListTests(TestCase):
@@ -217,3 +217,35 @@ class PublicEventDetailTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 404)
+
+
+class PublicEventTicketTypesTests(APITestCase):
+    def setUp(self):
+        self.organizer = get_user_model().objects.create_user(
+            username="public_ticket_organizer",
+            password="TestPassword123!",
+        )
+        self.event = Event.objects.create(
+            organizer=self.organizer,
+            name="Tuviora Public Ticket Test",
+            category=Event.Category.CONFERENCE,
+            date=timezone.localdate() + timedelta(days=7),
+            start_time="09:00",
+            end_time="17:00",
+            venue="Kampala",
+            status=Event.Status.PUBLISHED,
+        )
+        TicketType.objects.create(
+            event=self.event, name="Standard", price="25000.00"
+        )
+        TicketType.objects.create(
+            event=self.event,
+            name="Retired",
+            price="10000.00",
+            is_active=False,
+        )
+
+    def test_public_event_only_lists_active_ticket_types(self):
+        response = self.client.get(f"/api/events/public/{self.event.id}/")
+        names = [t["name"] for t in response.data["ticket_types"]]
+        self.assertEqual(names, ["Standard"])

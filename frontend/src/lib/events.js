@@ -41,9 +41,12 @@ export function getEventRegistrations(eventId) {
   return apiRequest(`/api/events/${eventId}/registrations/`)
 }
 
-export function registerForEvent(eventId) {
+export function registerForEvent(eventId, ticketTypeId) {
   return apiRequest(`/api/events/${eventId}/registrations/`, {
     method: 'POST',
+    body: ticketTypeId
+      ? JSON.stringify({ ticket_type_id: ticketTypeId })
+      : undefined,
   })
 }
 
@@ -60,4 +63,15 @@ export function cancelMyEventRegistration(eventId) {
 
 export function getMyRegistrations() {
   return apiRequest('/api/events/registrations/me/')
+}
+
+export function getEventTicketTypes(eventId) {
+  return apiRequest(`/api/events/${eventId}/ticket-types/`)
+}
+
+export function createTicketType(eventId, ticketType) {
+  return apiRequest(`/api/events/${eventId}/ticket-types/`, {
+    method: 'POST',
+    body: JSON.stringify(ticketType),
+  })
 }
