@@ -6,3 +6,4 @@ dj-database-url>=2,<4
 openai
 africastalking
 requests>=2.32,<3
+redis>=5,<7

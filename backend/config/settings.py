@@ -205,3 +205,34 @@ AFRICASTALKING_API_KEY = os.getenv(
 AFRICASTALKING_SENDER_ID = os.getenv(
     "AFRICASTALKING_SENDER_ID", ""
 )
+
+
+# Africa's Talking Voice
+AT_VOICE_NUMBER = os.getenv("AT_VOICE_NUMBER", "").strip()
+AT_VOICE_CALLBACK_URL = os.getenv(
+    "AT_VOICE_CALLBACK_URL", ""
+).strip()
+
+# Shared cache for production conference security.
+# Local development keeps Django's default in-memory cache.
+REDIS_URL = os.getenv("REDIS_URL", "").strip()
+
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+            "TIMEOUT": 900,
+        }
+    }
+
+
+# Private event conferences
+VOICE_CONFERENCE_ENABLED = (
+    os.getenv("VOICE_CONFERENCE_ENABLED", "false").lower()
+    == "true"
+)
+
+VOICE_CONFERENCE_MAX_PARTICIPANTS = int(
+    os.getenv("VOICE_CONFERENCE_MAX_PARTICIPANTS", "20")
+)
