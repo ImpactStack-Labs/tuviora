@@ -229,6 +229,7 @@ class MyRegistrationsListView(APIView):
             EventRegistration.objects
             .filter(user=request.user)
             .select_related("event")
+            .prefetch_related("event__ticket_types")
             .order_by("-registered_at", "-id")
         )
 

@@ -21,6 +21,7 @@ class PublicEventListView(generics.ListAPIView):
                 date__gte=timezone.localdate(),
             )
             .order_by("date", "start_time", "id")
+            .prefetch_related("ticket_types")
         )
 
 class PublicEventDetailView(generics.RetrieveAPIView):
@@ -34,4 +35,4 @@ class PublicEventDetailView(generics.RetrieveAPIView):
         return Event.objects.filter(
             status=Event.Status.PUBLISHED,
             date__gte=timezone.localdate(),
-        )
+        ).prefetch_related("ticket_types")

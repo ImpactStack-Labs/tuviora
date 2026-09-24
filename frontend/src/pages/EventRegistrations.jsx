@@ -103,6 +103,9 @@ export default function EventRegistrations() {
     confirmed: registrations.filter(
       (item) => item.status === 'confirmed'
     ).length,
+    pending: registrations.filter(
+      (item) => item.status === 'payment_pending'
+    ).length,
     cancelled: registrations.filter(
       (item) => item.status === 'cancelled'
     ).length,
@@ -182,7 +185,7 @@ export default function EventRegistrations() {
         </div>
       )}
 
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-4">
         <SummaryCard
           label="Total registrations"
           value={loadingRegistrations || registrationError ? '—' : counts.total}
@@ -192,6 +195,11 @@ export default function EventRegistrations() {
           label="Confirmed"
           value={loadingRegistrations || registrationError ? '—' : counts.confirmed}
           icon={CheckCircle2}
+        />
+        <SummaryCard
+          label="Payment pending"
+          value={loadingRegistrations || registrationError ? '—' : counts.pending}
+          icon={Users}
         />
         <SummaryCard
           label="Cancelled"
@@ -241,6 +249,7 @@ export default function EventRegistrations() {
           >
             <option value="all">All statuses</option>
             <option value="confirmed">Confirmed</option>
+            <option value="payment_pending">Payment pending</option>
             <option value="cancelled">Cancelled</option>
           </select>
         </div>
@@ -290,12 +299,16 @@ export default function EventRegistrations() {
                       {new Date(item.registered_at).toLocaleDateString('en-UG')}
                     </td>
                     <td className="px-5 py-4">
-                      <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
                         item.status === 'confirmed'
                           ? 'bg-green-100 text-green-800'
-                          : 'bg-red-50 text-red-700'
+                          : item.status === 'payment_pending'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-red-50 text-red-700'
                       }`}>
-                        {item.status}
+                        {item.status === 'payment_pending'
+                          ? 'Payment pending'
+                          : item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                       </span>
                     </td>
                   </tr>

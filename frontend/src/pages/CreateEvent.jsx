@@ -1,5 +1,5 @@
 import EventTimezone from '../components/EventTimezone'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { createEvent, createTicketType, formatApiError } from '../lib/events'
 import { ArrowLeft, CalendarDays, ExternalLink, Info, MapPin } from 'lucide-react'
@@ -34,6 +34,7 @@ export default function CreateEvent() {
   const [form, setForm] = useState(initialForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const createdEventRef = useRef(null)
   const navigate = useNavigate()
   const hasPhysicalLocation =
     form.eventFormat === 'physical' ||
@@ -110,8 +111,23 @@ export default function CreateEvent() {
 
   async function handleSubmit(event) {
     event.preventDefault()
-    setSaving(true)
     setError('')
+
+    const validTickets = form.isPaid
+      ? form.ticketTypes.filter(
+          (t) => t.name.trim() && Number(t.price) > 0,
+        )
+      : []
+
+    if (form.isPaid && !validTickets.length) {
+      setError(
+        'Add at least one ticket type with a name and a price greater ' +
+        'than zero, or turn off "This is a paid event".',
+      )
+      return
+    }
+
+    setSaving(true)
 
     const physical = ['physical', 'hybrid'].includes(form.eventFormat)
     const virtual = ['virtual', 'hybrid'].includes(form.eventFormat)
@@ -142,23 +158,21 @@ export default function CreateEvent() {
     }
 
     try {
-      const created = await createEvent(payload)
+      let created = createdEventRef.current
+      if (!created) {
+        created = await createEvent(payload)
+        createdEventRef.current = created
+      }
 
-      if (form.isPaid) {
-        const validTickets = form.ticketTypes.filter(
-          (t) => t.name.trim() && Number(t.price) > 0,
-        )
-
-        for (const ticket of validTickets) {
-          // ponytail: sequential, not Promise.all — keeps ticket type
-          // order predictable and errors attributable to one row.
-          // Revisit if organizers routinely add >10 tiers.
-          await createTicketType(created.id, {
-            name: ticket.name.trim(),
-            price: Number(ticket.price),
-            currency: ticket.currency,
-          })
-        }
+      for (const ticket of validTickets) {
+        // ponytail: sequential, not Promise.all — keeps ticket type
+        // order predictable and errors attributable to one row.
+        // Revisit if organizers routinely add >10 tiers.
+        await createTicketType(created.id, {
+          name: ticket.name.trim(),
+          price: Number(ticket.price),
+          currency: ticket.currency,
+        })
       }
 
       navigate('/operations/events', {

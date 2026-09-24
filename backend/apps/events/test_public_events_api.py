@@ -1,7 +1,9 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient, APITestCase
@@ -249,3 +251,35 @@ class PublicEventTicketTypesTests(APITestCase):
         response = self.client.get(f"/api/events/public/{self.event.id}/")
         names = [t["name"] for t in response.data["ticket_types"]]
         self.assertEqual(names, ["Standard"])
+
+    def test_public_event_list_does_not_n_plus_one_on_ticket_types(self):
+        # A small event count (e.g. 3) doesn't push the query count
+        # past the threshold even when broken, so use enough events
+        # that an unprefetched per-event query is unambiguously caught.
+        for i in range(12):
+            event = Event.objects.create(
+                organizer=self.organizer,
+                name=f"N+1 Test Event {i}",
+                category=Event.Category.CONFERENCE,
+                date=timezone.localdate() + timedelta(days=7),
+                start_time="09:00",
+                end_time="17:00",
+                venue="Kampala",
+                status=Event.Status.PUBLISHED,
+            )
+            TicketType.objects.create(
+                event=event, name="Standard", price="10000.00"
+            )
+
+        with CaptureQueriesContext(connection) as ctx:
+            response = self.client.get("/api/events/public/")
+
+        self.assertEqual(response.status_code, 200)
+        # However many queries the endpoint takes, it must not scale
+        # with the number of events (that's the N+1 signature).
+        query_count = len(ctx.captured_queries)
+        self.assertLess(
+            query_count, 10,
+            f"Expected a small constant number of queries, got {query_count}. "
+            "ticket_types may not be prefetched.",
+        )

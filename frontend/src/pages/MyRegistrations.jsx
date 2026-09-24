@@ -86,15 +86,22 @@ export default function MyRegistrations() {
   }
 
   const upcoming = registrations.filter(
-    (item) => item.status === 'confirmed' && !isPastEvent(item.event),
+    (item) => item.status !== 'cancelled' && !isPastEvent(item.event),
   )
   const history = registrations.filter(
-    (item) => item.status !== 'confirmed' || isPastEvent(item.event),
+    (item) => item.status === 'cancelled' || isPastEvent(item.event),
   )
 
   function registrationCard(item) {
     const past = isPastEvent(item.event)
     const confirmed = item.status === 'confirmed'
+    const pending = item.status === 'payment_pending'
+
+    const badgeLabel = pending
+      ? 'Payment pending'
+      : confirmed
+        ? (past ? 'Past event' : 'Confirmed')
+        : 'Cancelled'
 
     return (
       <article
@@ -113,7 +120,7 @@ export default function MyRegistrations() {
               ? 'bg-green-50 text-green-800'
               : 'bg-amber-50 text-amber-800'
           }`}>
-            {confirmed ? (past ? 'Past event' : 'Confirmed') : 'Cancelled'}
+            {badgeLabel}
           </span>
         </div>
 

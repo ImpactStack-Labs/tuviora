@@ -43,5 +43,5 @@ class PublicEventSerializer(serializers.ModelSerializer):
     def get_ticket_types(self, obj):
         from .ticket_serializers import TicketTypeSerializer
 
-        active = obj.ticket_types.filter(is_active=True)
+        active = [t for t in obj.ticket_types.all() if t.is_active]
         return TicketTypeSerializer(active, many=True).data
