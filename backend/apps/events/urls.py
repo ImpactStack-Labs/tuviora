@@ -1,3 +1,9 @@
+from .registration_views import (
+    CancelEventRegistrationView,
+    EventRegistrationView,
+    MyEventRegistrationView,
+)
+
 from .team_views import (
     EventTeamView,
     EventInvitationView,
@@ -25,6 +31,22 @@ from .views import (
 
 
 urlpatterns = [
+    path(
+        "<int:event_id>/registrations/",
+        EventRegistrationView.as_view(),
+        name="event-registrations",
+    ),
+    path(
+        "<int:event_id>/registrations/me/",
+        MyEventRegistrationView.as_view(),
+        name="my-event-registration",
+    ),
+    path(
+        "<int:event_id>/registrations/me/cancel/",
+        CancelEventRegistrationView.as_view(),
+        name="cancel-event-registration",
+    ),
+
     path(
         "invitations/accept/",
         InvitationAcceptView.as_view(),
