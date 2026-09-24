@@ -1,7 +1,12 @@
 import EventTimezone from '../components/EventTimezone'
 import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { createEvent, createTicketType, formatApiError } from '../lib/events'
+import {
+  createEvent,
+  createTicketType,
+  formatApiError,
+  getEventTicketTypes,
+} from '../lib/events'
 import { ArrowLeft, CalendarDays, ExternalLink, Info, MapPin } from 'lucide-react'
 import VenueMap from '../components/maps/VenueMap'
 import VenueSearch from '../components/maps/VenueSearch'
@@ -164,12 +169,22 @@ export default function CreateEvent() {
         createdEventRef.current = created
       }
 
+      const existingTicketNames = new Set(
+        (await getEventTicketTypes(created.id)).map((t) => t.name),
+      )
+
       for (const ticket of validTickets) {
+        const name = ticket.name.trim()
+
+        if (existingTicketNames.has(name)) {
+          continue
+        }
+
         // ponytail: sequential, not Promise.all — keeps ticket type
         // order predictable and errors attributable to one row.
         // Revisit if organizers routinely add >10 tiers.
         await createTicketType(created.id, {
-          name: ticket.name.trim(),
+          name,
           price: Number(ticket.price),
           currency: ticket.currency,
         })
