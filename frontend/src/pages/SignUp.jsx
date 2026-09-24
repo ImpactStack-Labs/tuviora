@@ -9,6 +9,8 @@ const initialForm = {
   last_name: '',
   username: '',
   email: '',
+  phone_number: '',
+  sms_enabled: false,
   password: '',
   confirm_password: '',
 }
@@ -139,6 +141,41 @@ export default function SignUp() {
                     className="mt-2 w-full rounded-xl border border-[#DCE5D8] px-4 py-3 outline-none focus:border-[#58761B]"
                   />
                 </label>
+
+                <div className="space-y-4 rounded-2xl border border-[#E2E9DE] bg-[#F7F9F5] p-5">
+                  <label className="block text-sm font-semibold">
+                    Phone number <span className="font-normal text-[#647365]">(optional)</span>
+                    <input
+                      type="tel"
+                      value={form.phone_number}
+                      onChange={(event) => update('phone_number', event.target.value)}
+                      autoComplete="tel"
+                      placeholder="+256700123456"
+                      maxLength={16}
+                      className="mt-2 w-full rounded-xl border border-[#DCE5D8] bg-white px-4 py-3 outline-none focus:border-[#58761B]"
+                    />
+                  </label>
+
+                  <p className="text-xs leading-5 text-[#647365]">
+                    Include your country code, for example +256 for Uganda.
+                  </p>
+
+                  <label className="flex items-start gap-3 text-sm leading-6">
+                    <input
+                      type="checkbox"
+                      checked={form.sms_enabled}
+                      onChange={(event) => update('sms_enabled', event.target.checked)}
+                      className="mt-1 h-4 w-4 accent-[#58761B]"
+                    />
+                    <span>
+                      I agree to receive Tuviora SMS notifications, including
+                      event reminders, announcements and relevant incident updates.
+                      <span className="mt-1 block text-xs text-[#647365]">
+                        Optional. A phone number is required if you opt in.
+                      </span>
+                    </span>
+                  </label>
+                </div>
 
                 <div className="grid gap-5 sm:grid-cols-2">
                   {[
