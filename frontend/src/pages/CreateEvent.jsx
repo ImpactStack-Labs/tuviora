@@ -1,7 +1,7 @@
 import EventTimezone from '../components/EventTimezone'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { createEvent, formatApiError } from '../lib/events'
+import { createEvent, createTicketType, formatApiError } from '../lib/events'
 import { ArrowLeft, CalendarDays, ExternalLink, Info, MapPin } from 'lucide-react'
 import VenueMap from '../components/maps/VenueMap'
 import VenueSearch from '../components/maps/VenueSearch'
@@ -23,6 +23,8 @@ const initialForm = {
   latitude: null,
   longitude: null,
   capacity: '',
+  isPaid: false,
+  ticketTypes: [{ key: 0, name: '', price: '', currency: 'UGX' }],
 }
 
 const fieldClass =
@@ -72,6 +74,32 @@ export default function CreateEvent() {
     }))
   }
 
+  function updateTicketType(key, field, value) {
+    setForm((previous) => ({
+      ...previous,
+      ticketTypes: previous.ticketTypes.map((ticket) =>
+        ticket.key === key ? { ...ticket, [field]: value } : ticket,
+      ),
+    }))
+  }
+
+  function addTicketType() {
+    setForm((previous) => ({
+      ...previous,
+      ticketTypes: [
+        ...previous.ticketTypes,
+        { key: Date.now(), name: '', price: '', currency: 'UGX' },
+      ],
+    }))
+  }
+
+  function removeTicketType(key) {
+    setForm((previous) => ({
+      ...previous,
+      ticketTypes: previous.ticketTypes.filter((t) => t.key !== key),
+    }))
+  }
+
   const hasLocation =
     Number.isFinite(form.latitude) &&
     Number.isFinite(form.longitude)
@@ -114,7 +142,25 @@ export default function CreateEvent() {
     }
 
     try {
-      await createEvent(payload)
+      const created = await createEvent(payload)
+
+      if (form.isPaid) {
+        const validTickets = form.ticketTypes.filter(
+          (t) => t.name.trim() && Number(t.price) > 0,
+        )
+
+        for (const ticket of validTickets) {
+          // ponytail: sequential, not Promise.all — keeps ticket type
+          // order predictable and errors attributable to one row.
+          // Revisit if organizers routinely add >10 tiers.
+          await createTicketType(created.id, {
+            name: ticket.name.trim(),
+            price: Number(ticket.price),
+            currency: ticket.currency,
+          })
+        }
+      }
+
       navigate('/operations/events', {
         state: { message: 'Event created successfully as a draft.' },
       })
@@ -475,6 +521,96 @@ export default function CreateEvent() {
               </div>
             )}
           </div>
+        </section>
+
+        <section className="rounded-2xl border border-[#E3E9DF] bg-white p-6 sm:p-8">
+          <h2 className="text-xl font-bold">Tickets &amp; pricing</h2>
+          <p className="mt-2 text-sm text-[#647064]">
+            Leave this off for a free event. Turn it on to charge
+            attendees and offer more than one ticket tier.
+          </p>
+
+          <label className="mt-5 flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={form.isPaid}
+              onChange={(event) =>
+                setForm((previous) => ({
+                  ...previous,
+                  isPaid: event.target.checked,
+                }))
+              }
+            />
+            <span className="font-semibold">This is a paid event</span>
+          </label>
+
+          {form.isPaid && (
+            <div className="mt-6 space-y-4">
+              {form.ticketTypes.map((ticket) => (
+                <div
+                  key={ticket.key}
+                  className="grid gap-3 rounded-xl border border-[#DCE5D8] p-4 sm:grid-cols-[2fr_1fr_1fr_auto]"
+                >
+                  <input
+                    value={ticket.name}
+                    onChange={(event) =>
+                      updateTicketType(ticket.key, 'name', event.target.value)
+                    }
+                    placeholder="e.g. Standard"
+                    className={fieldClass}
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={ticket.price}
+                    onChange={(event) =>
+                      updateTicketType(ticket.key, 'price', event.target.value)
+                    }
+                    placeholder="Price"
+                    className={fieldClass}
+                  />
+                  <select
+                    value={ticket.currency}
+                    onChange={(event) =>
+                      updateTicketType(
+                        ticket.key,
+                        'currency',
+                        event.target.value,
+                      )
+                    }
+                    className={fieldClass}
+                  >
+                    <option value="UGX">UGX</option>
+                    <option value="KES">KES</option>
+                    <option value="RWF">RWF</option>
+                    <option value="CDF">CDF</option>
+                    <option value="USD">USD</option>
+                    <option value="ZMW">ZMW</option>
+                    <option value="XAF">XAF</option>
+                    <option value="XOF">XOF</option>
+                    <option value="SLE">SLE</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => removeTicketType(ticket.key)}
+                    disabled={form.ticketTypes.length === 1}
+                    className="rounded-xl border border-[#DCE5D8] px-4 py-2 text-sm font-semibold text-[#1A3F22] disabled:opacity-40"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={addTicketType}
+                className="rounded-xl border border-[#58761B] px-4 py-2 text-sm font-semibold text-[#58761B]"
+              >
+                Add another ticket type
+              </button>
+            </div>
+          )}
         </section>
 
         <div className="flex items-start gap-3 rounded-xl border border-[#E8E1C7] bg-[#FFFCF1] p-5 text-sm text-[#715B20]">
