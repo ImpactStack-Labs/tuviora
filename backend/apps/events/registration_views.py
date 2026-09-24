@@ -7,7 +7,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Event, EventRegistration
-from .registration_serializers import EventRegistrationSerializer
+from .registration_serializers import (
+    EventRegistrationSerializer,
+    MyRegistrationsSerializer,
+)
 
 
 class EventRegistrationView(APIView):
@@ -156,4 +159,23 @@ class CancelEventRegistrationView(APIView):
 
         return Response(
             EventRegistrationSerializer(registration).data
+        )
+
+
+
+class MyRegistrationsListView(APIView):
+    """List only the signed-in attendee's event registrations."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        registrations = (
+            EventRegistration.objects
+            .filter(user=request.user)
+            .select_related("event")
+            .order_by("-registered_at", "-id")
+        )
+
+        return Response(
+            MyRegistrationsSerializer(registrations, many=True).data
         )

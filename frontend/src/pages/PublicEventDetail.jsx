@@ -50,25 +50,20 @@ export default function PublicEventDetail() {
       setError('')
 
       try {
-        const response = await fetch('/api/events/public/', {
+        const response = await fetch(`/api/events/public/${eventId}/`, {
           signal: controller.signal,
           headers: { Accept: 'application/json' },
         })
+
+        if (response.status === 404) {
+          throw new Error('This event is unavailable or no longer published.')
+        }
 
         if (!response.ok) {
           throw new Error('Unable to load this event.')
         }
 
-        const data = await response.json()
-        const events = Array.isArray(data) ? data : data.results || []
-        const selected = events.find(
-          (item) => String(item.id) === String(eventId),
-        )
-
-        if (!selected) {
-          throw new Error('This event is unavailable or no longer published.')
-        }
-
+        const selected = await response.json()
         setEvent(selected)
       } catch (err) {
         if (!controller.signal.aborted) {
@@ -183,13 +178,21 @@ export default function PublicEventDetail() {
           <Link to="/" className="text-2xl font-bold">
             tuviora<span className="text-[#D99201]">.</span>
           </Link>
-          <Link
-            to="/events"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-[#58761B]"
-          >
-            <ArrowLeft size={17} />
-            All events
-          </Link>
+          <nav className="flex flex-wrap items-center gap-5">
+            <Link
+              to="/my-registrations"
+              className="text-sm font-semibold text-[#58761B] hover:underline"
+            >
+              My Registrations
+            </Link>
+            <Link
+              to="/events"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#58761B] hover:underline"
+            >
+              <ArrowLeft size={17} />
+              All events
+            </Link>
+          </nav>
         </div>
       </header>
 

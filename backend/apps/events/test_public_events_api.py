@@ -123,3 +123,97 @@ class PublicEventListTests(TestCase):
             [item["name"] for item in response.data],
             ["Earlier event", "Later event"],
         )
+
+
+class PublicEventDetailTests(TestCase):
+    """Verify public event details and their visibility restrictions."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.organizer = get_user_model().objects.create_user(
+            username="public_event_organizer",
+            password="test-password",
+        )
+        self.today = timezone.localdate()
+        self.url = reverse("public-event-list")
+
+    def make_event(self, name, *, status, days_from_today):
+        return Event.objects.create(
+            organizer=self.organizer,
+            name=name,
+            category=Event.Category.HACKATHON,
+            description="A test event.",
+            date=self.today + timedelta(days=days_from_today),
+            start_time="09:00",
+            end_time="17:00",
+            event_format=Event.EventFormat.PHYSICAL,
+            venue="Kampala",
+            capacity=100,
+            status=status,
+            online_url="https://example.com/private-meeting",
+            joining_instructions="Private instructions",
+        )
+
+    def test_anonymous_visitor_can_open_published_event_detail(self):
+        event = self.make_event(
+            "Public event detail",
+            status=Event.Status.PUBLISHED,
+            days_from_today=2,
+        )
+
+        response = self.client.get(
+            reverse("public-event-detail", kwargs={"pk": event.pk})
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["id"], event.pk)
+        self.assertEqual(response.data["name"], event.name)
+
+    def test_unpublished_and_past_event_details_return_404(self):
+        for status, days in (
+            (Event.Status.DRAFT, 2),
+            (Event.Status.CANCELLED, 2),
+            (Event.Status.COMPLETED, 2),
+            (Event.Status.PUBLISHED, -2),
+        ):
+            with self.subTest(status=status, days=days):
+                event = self.make_event(
+                    f"Restricted {status} {days}",
+                    status=status,
+                    days_from_today=days,
+                )
+
+                response = self.client.get(
+                    reverse("public-event-detail", kwargs={"pk": event.pk})
+                )
+
+                self.assertEqual(response.status_code, 404)
+
+    def test_public_detail_does_not_expose_private_information(self):
+        event = self.make_event(
+            "Privacy test",
+            status=Event.Status.PUBLISHED,
+            days_from_today=1,
+        )
+
+        response = self.client.get(
+            reverse("public-event-detail", kwargs={"pk": event.pk})
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        for private_field in (
+            "online_url",
+            "joining_instructions",
+            "organizer",
+            "latitude",
+            "longitude",
+        ):
+            self.assertNotIn(private_field, response.data)
+
+    def test_unknown_event_returns_404(self):
+        response = self.client.get(
+            reverse("public-event-detail", kwargs={"pk": 999999})
+        )
+
+        self.assertEqual(response.status_code, 404)

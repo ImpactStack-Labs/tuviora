@@ -3,7 +3,7 @@ const RETURN_KEY = 'tuviora.attendeeReturnPath'
 export function safeAttendeePath(value) {
   if (
     typeof value === 'string' &&
-    /^\/events(?:\/\d+)?\/?$/.test(value)
+    /^\/(?:events(?:\/\d+)?|my-registrations)\/?$/.test(value)
   ) {
     return value
   }

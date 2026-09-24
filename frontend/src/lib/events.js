@@ -56,3 +56,8 @@ export function cancelMyEventRegistration(eventId) {
     method: 'POST',
   })
 }
+
+
+export function getMyRegistrations() {
+  return apiRequest('/api/events/registrations/me/')
+}

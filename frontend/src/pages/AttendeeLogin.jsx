@@ -2,17 +2,10 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, CalendarDays, LockKeyhole, LogIn } from 'lucide-react'
 import { loginOrganizer } from '../lib/auth'
+import { safeAttendeePath } from '../lib/attendeeReturn'
 
 function safeNextPath(value) {
-  if (
-    typeof value === 'string' &&
-    value.startsWith('/events') &&
-    !value.startsWith('//')
-  ) {
-    return value
-  }
-
-  return '/events'
+  return safeAttendeePath(value) || '/events'
 }
 
 export default function AttendeeLogin() {

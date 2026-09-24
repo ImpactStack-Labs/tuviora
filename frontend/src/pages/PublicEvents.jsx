@@ -107,13 +107,21 @@ export default function PublicEvents() {
           <Link to="/" className="text-2xl font-bold tracking-tight">
             tuviora<span className="text-[#D99201]">.</span>
           </Link>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-[#58761B] hover:underline"
-          >
-            <ArrowLeft size={17} />
-            Back to home
-          </Link>
+          <nav className="flex flex-wrap items-center gap-5">
+            <Link
+              to="/my-registrations"
+              className="text-sm font-semibold text-[#58761B] hover:underline"
+            >
+              My Registrations
+            </Link>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#58761B] hover:underline"
+            >
+              <ArrowLeft size={17} />
+              Back to home
+            </Link>
+          </nav>
         </div>
       </header>
 
