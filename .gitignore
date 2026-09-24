@@ -27,3 +27,6 @@ dist/
 *.backup
 *.backup.*
 *.bak
+
+# Private local voice recordings and audio
+.local-audio/
