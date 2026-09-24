@@ -40,3 +40,24 @@ export function publishEvent(eventId) {
 export function getEventRegistrations(eventId) {
   return apiRequest(`/api/events/${eventId}/registrations/`)
 }
+
+export function registerForEvent(eventId) {
+  return apiRequest(`/api/events/${eventId}/registrations/`, {
+    method: 'POST',
+  })
+}
+
+export function getMyEventRegistration(eventId) {
+  return apiRequest(`/api/events/${eventId}/registrations/me/`)
+}
+
+export function cancelMyEventRegistration(eventId) {
+  return apiRequest(`/api/events/${eventId}/registrations/me/cancel/`, {
+    method: 'POST',
+  })
+}
+
+
+export function getMyRegistrations() {
+  return apiRequest('/api/events/registrations/me/')
+}

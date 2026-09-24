@@ -6,6 +6,10 @@ import {
 } from 'react-router-dom'
 
 import PublicHome from './pages/PublicHome'
+import PublicEvents from './pages/PublicEvents'
+import PublicEventDetail from './pages/PublicEventDetail'
+import MyRegistrations from './pages/MyRegistrations'
+import AttendeeLogin from './pages/AttendeeLogin'
 import OperationsPage from './pages/OperationsPage'
 import AcceptInvitation from './pages/AcceptInvitation'
 import SignUp from './pages/SignUp'
@@ -16,6 +20,10 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<PublicHome />} />
+        <Route path="/events" element={<PublicEvents />} />
+        <Route path="/events/:eventId" element={<PublicEventDetail />} />
+        <Route path="/my-registrations" element={<MyRegistrations />} />
+        <Route path="/attendee/login" element={<AttendeeLogin />} />
         <Route path="/operations/*" element={<OperationsPage />} />
         <Route path="/invite" element={<AcceptInvitation />} />
         <Route path="/signup" element={<SignUp />} />

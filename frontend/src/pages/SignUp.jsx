@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowRight, CalendarDays, UserPlus } from 'lucide-react'
 import { registerAccount } from '../lib/auth'
 import { getPendingInvitation } from '../lib/invitationSession'
+import { saveAttendeeReturn } from '../lib/attendeeReturn'
 
 const initialForm = {
   first_name: '',
@@ -29,7 +30,15 @@ export default function SignUp() {
   const [error, setError] = useState('')
   const [registered, setRegistered] = useState(false)
 
+  const [params] = useSearchParams()
   const invited = Boolean(getPendingInvitation())
+  const attendeePath = invited
+    ? ''
+    : saveAttendeeReturn(params.get('next'))
+
+  const signInPath = attendeePath
+    ? `/attendee/login?next=${encodeURIComponent(attendeePath)}`
+    : '/operations'
 
   function update(field, value) {
     setForm((current) => ({ ...current, [field]: value }))
@@ -81,7 +90,7 @@ export default function SignUp() {
                   After verification, return to your invitation to join the team.
                 </p>
               )}
-              <Link to="/operations"
+              <Link to={signInPath}
                 className="mt-7 inline-flex items-center gap-2 font-semibold text-[#58761B]">
                 Go to sign in <ArrowRight size={17} />
               </Link>
@@ -212,7 +221,7 @@ export default function SignUp() {
 
               <p className="mt-6 text-center text-sm text-[#647365]">
                 Already registered?{' '}
-                <Link to="/operations" className="font-semibold text-[#58761B] hover:underline">
+                <Link to={signInPath} className="font-semibold text-[#58761B] hover:underline">
                   Sign in
                 </Link>
               </p>

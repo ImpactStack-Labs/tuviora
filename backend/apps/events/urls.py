@@ -1,7 +1,9 @@
+from .public_views import PublicEventDetailView, PublicEventListView
 from .registration_views import (
     CancelEventRegistrationView,
     EventRegistrationView,
     MyEventRegistrationView,
+    MyRegistrationsListView,
 )
 
 from .team_views import (
@@ -31,6 +33,21 @@ from .views import (
 
 
 urlpatterns = [
+    path(
+        "registrations/me/",
+        MyRegistrationsListView.as_view(),
+        name="my-registrations-list",
+    ),
+    path(
+        "public/",
+        PublicEventListView.as_view(),
+        name="public-event-list",
+    ),
+    path(
+        "public/<int:pk>/",
+        PublicEventDetailView.as_view(),
+        name="public-event-detail",
+    ),
     path(
         "<int:event_id>/registrations/",
         EventRegistrationView.as_view(),
