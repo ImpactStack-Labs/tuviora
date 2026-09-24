@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -12,7 +13,32 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .models import EmailVerification
+from .models import EmailVerification, SMSPreference
+from apps.events.services.sms_service import (
+    SMSServiceError,
+    send_sms,
+    validate_phone_number,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def send_registration_sms(phone_number, first_name):
+    """Send a welcome message without disrupting registration."""
+    try:
+        send_sms(
+            phone_number,
+            (
+                f"Welcome to Tuviora, {first_name}! "
+                "Please check your email to verify your account."
+            ),
+        )
+    except (SMSServiceError, ValueError):
+        logger.warning(
+            "Registration SMS could not be submitted.",
+            exc_info=True,
+        )
+
 
 
 def parse_json(request):
@@ -40,8 +66,33 @@ def register(request):
     email = str(data.get("email", "")).strip().lower()
     password = data.get("password", "")
     confirm_password = data.get("confirm_password", "")
+    phone_number = data.get("phone_number", "")
+    sms_enabled = data.get("sms_enabled", False)
 
     errors = {}
+
+    if not isinstance(sms_enabled, bool):
+        errors["sms_enabled"] = [
+            "SMS preference must be true or false."
+        ]
+
+    if not isinstance(phone_number, str):
+        errors["phone_number"] = [
+            "Enter a valid international phone number."
+        ]
+        phone_number = ""
+    elif phone_number.strip():
+        try:
+            phone_number = validate_phone_number(phone_number)
+        except ValueError as exc:
+            errors["phone_number"] = [str(exc)]
+    else:
+        phone_number = ""
+
+    if sms_enabled is True and not phone_number:
+        errors["phone_number"] = [
+            "A phone number is required to enable SMS."
+        ]
 
     if not first_name:
         errors["first_name"] = ["First name is required."]
@@ -106,6 +157,13 @@ def register(request):
                 is_active=False,
             )
 
+            if phone_number:
+                SMSPreference.objects.create(
+                    user=user,
+                    phone_number=phone_number,
+                    sms_enabled=sms_enabled,
+                )
+
             _, token = EmailVerification.create_for_user(user)
 
             frontend_url = settings.FRONTEND_BASE_URL.rstrip("/")
@@ -127,6 +185,12 @@ def register(request):
                 recipient_list=[email],
                 fail_silently=False,
             )
+
+            if sms_enabled and phone_number:
+                transaction.on_commit(
+                    lambda number=phone_number, name=first_name:
+                    send_registration_sms(number, name)
+                )
 
     except IntegrityError:
         return JsonResponse(

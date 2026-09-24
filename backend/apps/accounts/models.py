@@ -37,3 +37,23 @@ class EmailVerification(models.Model):
 
     def __str__(self):
         return f"Email verification for user {self.user_id}"
+
+
+class SMSPreference(models.Model):
+    """A user's phone number and permission to receive SMS."""
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="sms_preference",
+    )
+    phone_number = models.CharField(
+        max_length=16,
+        blank=True,
+    )
+    sms_enabled = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"SMS preferences for user {self.user_id}"
