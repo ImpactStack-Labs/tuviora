@@ -483,10 +483,55 @@ class AIFeedbackAnalysis(models.Model):
         return f"AI feedback analysis for {self.event.name}"
 
 
+class TicketType(models.Model):
+    class Currency(models.TextChoices):
+        UGX = "UGX", "Ugandan Shilling"
+        KES = "KES", "Kenyan Shilling"
+        RWF = "RWF", "Rwandan Franc"
+        CDF = "CDF", "Congolese Franc"
+        USD = "USD", "US Dollar"
+        ZMW = "ZMW", "Zambian Kwacha"
+        XAF = "XAF", "Central African CFA Franc"
+        XOF = "XOF", "West African CFA Franc"
+        SLE = "SLE", "Sierra Leonean Leone"
+
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name="ticket_types",
+    )
+
+    name = models.CharField(max_length=100)
+
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+    )
+
+    currency = models.CharField(
+        max_length=3,
+        choices=Currency.choices,
+        default=Currency.UGX,
+    )
+
+    is_active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["price", "id"]
+
+    def __str__(self):
+        return f"{self.name} - {self.event.name}"
+
+
 class EventRegistration(models.Model):
     """An attendee's registration for an event."""
 
     class Status(models.TextChoices):
+        PAYMENT_PENDING = "payment_pending", "Payment Pending"
         CONFIRMED = "confirmed", "Confirmed"
         CANCELLED = "cancelled", "Cancelled"
 
@@ -500,6 +545,26 @@ class EventRegistration(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="event_registrations",
+    )
+
+    ticket_type = models.ForeignKey(
+        TicketType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="registrations",
+    )
+
+    amount_due = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+
+    currency = models.CharField(
+        max_length=3,
+        blank=True,
     )
 
     status = models.CharField(
