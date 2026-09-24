@@ -1,3 +1,4 @@
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from .models import Feedback
 from django.utils import timezone
 from rest_framework import serializers
@@ -19,6 +20,7 @@ class EventSerializer(serializers.ModelSerializer):
             "category",
             "description",
             "date",
+            "timezone_name",
             "start_time",
             "end_time",
             "event_format",
@@ -43,6 +45,16 @@ class EventSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def validate_timezone_name(self, value):
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise serializers.ValidationError(
+                "Select a valid IANA timezone."
+            )
+
+        return value
 
     def validate(self, attrs):
         event_format = attrs.get(
@@ -203,6 +215,37 @@ class ReadinessTaskSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
+        # TASK_ASSIGNEE_MEMBERSHIP_VALIDATION_V1
+        from .models import EventMembership
+
+        assignee = attrs.get(
+            "assignee",
+            getattr(self.instance, "assignee", None),
+        )
+
+        event = (
+            self.instance.event
+            if self.instance is not None
+            else self.context["view"].get_event()
+        )
+
+        if assignee is not None:
+            is_organizer = assignee.pk == event.organizer_id
+            is_member = EventMembership.objects.filter(
+                event=event,
+                user=assignee,
+            ).exists()
+
+            if not is_organizer and not is_member:
+                raise serializers.ValidationError(
+                    {
+                        "assignee": (
+                            "Select the organizer or an accepted "
+                            "member of this event."
+                        )
+                    }
+                )
+
         status = attrs.get(
             "status",
             getattr(

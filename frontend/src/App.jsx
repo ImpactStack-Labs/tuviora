@@ -7,6 +7,9 @@ import {
 
 import PublicHome from './pages/PublicHome'
 import OperationsPage from './pages/OperationsPage'
+import AcceptInvitation from './pages/AcceptInvitation'
+import SignUp from './pages/SignUp'
+import VerifyEmail from './pages/VerifyEmail'
 
 export default function App() {
   return (
@@ -14,6 +17,9 @@ export default function App() {
       <Routes>
         <Route path="/" element={<PublicHome />} />
         <Route path="/operations/*" element={<OperationsPage />} />
+        <Route path="/invite" element={<AcceptInvitation />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

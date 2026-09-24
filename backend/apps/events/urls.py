@@ -1,3 +1,10 @@
+from .team_views import (
+    EventTeamView,
+    EventInvitationView,
+    EventInvitationRevokeView,
+    InvitationAcceptView,
+)
+
 from django.urls import path
 
 from .ai_views import (
@@ -11,12 +18,33 @@ from .views import (
     EventIncidentDetailView,
     EventIncidentListCreateView,
     EventListCreateView,
+    EventPublishView,
     EventTaskDetailView,
     EventTaskListCreateView,
 )
 
 
 urlpatterns = [
+    path(
+        "invitations/accept/",
+        InvitationAcceptView.as_view(),
+        name="event-invitation-accept",
+    ),
+    path(
+        "<int:event_id>/team/",
+        EventTeamView.as_view(),
+        name="event-team",
+    ),
+    path(
+        "<int:event_id>/invitations/",
+        EventInvitationView.as_view(),
+        name="event-invitations",
+    ),
+    path(
+        "<int:event_id>/invitations/<int:invitation_id>/revoke/",
+        EventInvitationRevokeView.as_view(),
+        name="event-invitation-revoke",
+    ),
     path(
         "<int:event_id>/feedback/",
         FeedbackListCreateView.as_view(),
@@ -28,6 +56,11 @@ urlpatterns = [
         name="event-feedback-analysis",
     ),
     path("", EventListCreateView.as_view(), name="event-list-create"),
+    path(
+        "<int:event_id>/publish/",
+        EventPublishView.as_view(),
+        name="event-publish",
+    ),
     path(
         "<int:event_id>/tasks/",
         EventTaskListCreateView.as_view(),

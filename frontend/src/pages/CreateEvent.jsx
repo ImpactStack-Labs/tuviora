@@ -1,5 +1,7 @@
+import EventTimezone from '../components/EventTimezone'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { createEvent, formatApiError } from '../lib/events'
 import { ArrowLeft, CalendarDays, ExternalLink, Info, MapPin } from 'lucide-react'
 import VenueMap from '../components/maps/VenueMap'
 import VenueSearch from '../components/maps/VenueSearch'
@@ -9,6 +11,7 @@ const initialForm = {
   category: '',
   description: '',
   date: '',
+  timezone: 'Africa/Kampala',
   startTime: '',
   endTime: '',
   eventFormat: 'physical',
@@ -27,6 +30,9 @@ const fieldClass =
 
 export default function CreateEvent() {
   const [form, setForm] = useState(initialForm)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const navigate = useNavigate()
   const hasPhysicalLocation =
     form.eventFormat === 'physical' ||
     form.eventFormat === 'hybrid'
@@ -74,9 +80,49 @@ export default function CreateEvent() {
     ? `https://www.google.com/maps/dir/?api=1&destination=${form.latitude}%2C${form.longitude}`
     : null
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
-    // The shared Event API is not implemented yet.
+    setSaving(true)
+    setError('')
+
+    const physical = ['physical', 'hybrid'].includes(form.eventFormat)
+    const virtual = ['virtual', 'hybrid'].includes(form.eventFormat)
+
+    const payload = {
+      name: form.name.trim(),
+      category: form.category,
+      description: form.description.trim(),
+      date: form.date,
+      timezone_name: form.timezone,
+      start_time: form.startTime,
+      end_time: form.endTime,
+      event_format: form.eventFormat,
+      venue: physical ? form.venue.trim() : '',
+      landmark: physical ? form.landmark.trim() : '',
+      latitude: physical && Number.isFinite(form.latitude)
+        ? Number(form.latitude.toFixed(6))
+        : null,
+      longitude: physical && Number.isFinite(form.longitude)
+        ? Number(form.longitude.toFixed(6))
+        : null,
+      online_platform: virtual ? form.onlinePlatform : '',
+      online_url: virtual ? form.onlineUrl.trim() : '',
+      joining_instructions: virtual
+        ? form.joiningInstructions.trim()
+        : '',
+      capacity: form.capacity ? Number(form.capacity) : null,
+    }
+
+    try {
+      await createEvent(payload)
+      navigate('/operations/events', {
+        state: { message: 'Event created successfully as a draft.' },
+      })
+    } catch (err) {
+      setError(formatApiError(err))
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -178,6 +224,18 @@ export default function CreateEvent() {
 
         <section className="rounded-2xl border border-[#E3E9DF] bg-white p-6 sm:p-8">
           <h2 className="text-xl font-bold">Date and location</h2>
+          <div className="mt-5">
+            <EventTimezone
+              value={form.timezone}
+              date={form.date}
+              onChange={(timezone) =>
+                setForm((previous) => ({
+                  ...previous,
+                  timezone,
+                }))
+              }
+            />
+          </div>
           <p className="mt-2 text-sm text-[#647064]">
             When and where will your event take place?
           </p>
@@ -422,10 +480,16 @@ export default function CreateEvent() {
         <div className="flex items-start gap-3 rounded-xl border border-[#E8E1C7] bg-[#FFFCF1] p-5 text-sm text-[#715B20]">
           <Info size={20} className="mt-0.5 shrink-0" />
           <p>
-            This form is a frontend preview. Event saving will be
-            enabled when the shared backend API is connected.
+            Your event will be saved as a draft. Publishing will be
+            available when the event publishing workflow is connected.
           </p>
         </div>
+
+        {error && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </div>
+        )}
 
         <div className="flex flex-wrap justify-end gap-3">
           <Link
@@ -436,11 +500,10 @@ export default function CreateEvent() {
           </Link>
           <button
             type="submit"
-            disabled
-            title="Event saving is awaiting backend integration"
-            className="cursor-not-allowed rounded-xl bg-[#1A3F22] px-6 py-3 font-semibold text-white opacity-50"
+            disabled={saving}
+            className="rounded-xl bg-[#1A3F22] px-6 py-3 font-semibold text-white transition hover:bg-[#31563A] disabled:cursor-wait disabled:opacity-60"
           >
-            Create Event
+            {saving ? 'Creating event...' : 'Create Event'}
           </button>
         </div>
       </form>
