@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { CalendarDays, CheckCircle2, MailCheck } from 'lucide-react'
 import { verifyEmail } from '../lib/auth'
 import { invitationPath } from '../lib/invitationSession'
+import { getAttendeeReturn } from '../lib/attendeeReturn'
 
 const TOKEN_KEY = 'tuviora.emailVerificationToken'
 
@@ -57,7 +58,16 @@ export default function VerifyEmail() {
     }
   }
 
-  const nextPath = invitationPath()
+  const invitation = invitationPath()
+  const attendeePath = getAttendeeReturn()
+
+  const nextPath = invitation !== '/operations'
+    ? invitation
+    : attendeePath
+      ? `/attendee/login?next=${encodeURIComponent(attendeePath)}`
+      : '/operations'
+
+  const returningToInvitation = invitation !== '/operations'
 
   return (
     <main className="min-h-screen bg-[#F7F9F5] px-5 py-12 text-[#1A3F22]">
@@ -87,14 +97,14 @@ export default function VerifyEmail() {
             <>
               <p className="mt-4 leading-7 text-[#647365]">
                 Your Tuviora account is now active.
-                Continue to your invitation or sign in.
+                Continue to your invitation or sign in to your account.
               </p>
 
               <Link
                 to={nextPath}
                 className="mt-7 inline-flex w-full items-center justify-center rounded-xl bg-[#1A3F22] px-5 py-3.5 font-semibold text-white"
               >
-                {nextPath === '/operations'
+                {!returningToInvitation
                   ? 'Continue to sign in'
                   : 'Continue to your invitation'}
               </Link>
@@ -135,7 +145,7 @@ export default function VerifyEmail() {
                 to={nextPath}
                 className="mt-6 inline-flex font-semibold text-[#58761B]"
               >
-                {nextPath === '/operations'
+                {!returningToInvitation
                   ? 'Continue to sign in'
                   : 'Return to your invitation'}
               </Link>
