@@ -20,9 +20,6 @@ dist/
 .DS_Store
 *.log
 
-# Claude Code local state
-.claude/
-
 # Isolated worktrees for plan execution
 .worktrees/
 
