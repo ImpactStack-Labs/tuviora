@@ -189,3 +189,19 @@ FRONTEND_BASE_URL = "http://localhost:5173"
 
 # Sender displayed in development emails.
 
+
+# SMS is disabled unless explicitly enabled.
+SMS_ENABLED = os.getenv(
+    "SMS_ENABLED", "false"
+).strip().lower() == "true"
+
+# Africa's Talking SMS configuration
+AFRICASTALKING_USERNAME = os.getenv(
+    "AFRICASTALKING_USERNAME", ""
+)
+AFRICASTALKING_API_KEY = os.getenv(
+    "AFRICASTALKING_API_KEY", ""
+)
+AFRICASTALKING_SENDER_ID = os.getenv(
+    "AFRICASTALKING_SENDER_ID", ""
+)
