@@ -276,7 +276,21 @@ class ReadinessTaskSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    # TASK_ASSIGNMENT_EMAIL_V1
+    def create(self, validated_data):
+        from .task_notifications import queue_task_assignment_email
+
+        task = super().create(validated_data)
+
+        if task.assignee_id is not None:
+            queue_task_assignment_email(task)
+
+        return task
+
     def update(self, instance, validated_data):
+        from .task_notifications import queue_task_assignment_email
+
+        previous_assignee_id = instance.assignee_id
         status = validated_data.get("status", instance.status)
 
         if status == ReadinessTask.Status.COMPLETED:
@@ -286,7 +300,15 @@ class ReadinessTaskSerializer(serializers.ModelSerializer):
         elif status != ReadinessTask.Status.COMPLETED:
             validated_data["completed_at"] = None
 
-        return super().update(instance, validated_data)
+        task = super().update(instance, validated_data)
+
+        if (
+            task.assignee_id is not None
+            and task.assignee_id != previous_assignee_id
+        ):
+            queue_task_assignment_email(task)
+
+        return task
 
 
 class IncidentSerializer(serializers.ModelSerializer):
