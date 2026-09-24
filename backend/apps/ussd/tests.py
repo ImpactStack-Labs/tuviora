@@ -62,6 +62,13 @@ class USSDCallbackTests(TestCase):
         response = self.send("", phoneNumber="invalid")
         self.assertTrue(response.content.decode().startswith("END "))
 
+    def test_exit_after_invalid_choice_uses_end(self):
+        response = self.send("8*0")
+        self.assertEqual(
+            response.content.decode(),
+            "END Thank you for using Tuviora.",
+        )
+
     def test_exit_uses_end(self):
         response = self.send("0")
         self.assertEqual(

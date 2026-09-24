@@ -43,7 +43,7 @@ def ussd_callback(request):
 
     parts = text.split("*")
 
-    if parts == ["0"]:
+    if parts[-1] == "0":
         return reply("END", "Thank you for using Tuviora.")
 
     if parts[0] == "1":
