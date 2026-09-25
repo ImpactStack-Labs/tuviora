@@ -2,12 +2,14 @@ import { formatEventTimezone } from '../components/EventTimezone'
 import { formatEventDate, formatEventTime } from '../lib/format'
 import StatCard from '../components/StatCard'
 import LoadingRow from '../components/LoadingRow'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { QRCodeCanvas } from 'qrcode.react'
 import {
   ArrowRight,
   CalendarDays,
   CheckCircle2,
   Clock3,
+  Download,
   FilePenLine,
   MapPin,
   Plus,
@@ -179,6 +181,48 @@ function EventCard({ event, onPublish, publishingId, onView }) {
   )
 }
 
+// Scanning opens the public event page, where people register.
+function SignupQrCode({ event }) {
+  const canvasRef = useRef(null)
+  const url = `${window.location.origin}/events/${event.id}`
+
+  function download() {
+    const link = document.createElement('a')
+    link.href = canvasRef.current.toDataURL('image/png')
+    link.download = `${event.name}-signup-qr.png`
+    link.click()
+  }
+
+  return (
+    <div className="mt-6 flex flex-col items-center gap-3 rounded-xl border border-border-soft p-5 text-center">
+      <h3 className="font-bold text-[#1A3F22]">Signup QR code</h3>
+      <p className="text-sm text-[#647064]">
+        Print or display this so people can scan it and register.
+      </p>
+      <QRCodeCanvas
+        ref={canvasRef}
+        value={url}
+        size={512}
+        marginSize={2}
+        style={{ width: 200, height: 200 }}
+        aria-label={`QR code linking to ${url}`}
+        role="img"
+      />
+      <a href={url} className="break-all text-xs text-[#58761B] underline">
+        {url}
+      </a>
+      <button
+        type="button"
+        onClick={download}
+        className="inline-flex items-center gap-2 rounded-xl border border-border-soft px-4 py-2.5 text-sm font-semibold text-[#1A3F22] hover:bg-[#F0F5EB]"
+      >
+        <Download size={16} />
+        Download PNG
+      </button>
+    </div>
+  )
+}
+
 function EventDetailsModal({ event, onClose, onPublish, publishingId }) {
   useEffect(() => {
     if (!event) return undefined
@@ -298,6 +342,8 @@ function EventDetailsModal({ event, onClose, onPublish, publishingId }) {
             </div>
           )}
         </div>
+
+        {event.status === 'published' && <SignupQrCode event={event} />}
 
         <div className="mt-6 flex flex-wrap justify-end gap-3">
           <button
