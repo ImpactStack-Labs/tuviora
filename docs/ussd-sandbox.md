@@ -25,7 +25,7 @@ allowed hostname when that happens. Stop the tunnel after testing.
 
 ## Flows to check
 
-- The opening menu lists event information, registration, staff reporting, and exit.
+- The opening menu lists event information, registration check, staff reporting, rating, and exit.
 - Choose `1`, then enter the ID of a published event in the local database.
   The response shows its public name, date, time, and venue.
 - An unknown event ID ends with "Published event not found."
@@ -40,6 +40,10 @@ allowed hostname when that happens. Stop the tunnel after testing.
 - Staff incident reporting currently ends without accepting a report. It
   requires accepted event membership and a staff PIN or equivalent
   authentication.
+- Choose `5`, enter the ID of an event where the caller's phone has a confirmed
+  registration, rate 1–5, then type a comment or `9` to skip. The feedback
+  appears on the organizer's Feedback page. Callers without a confirmed
+  registration get the same generic "No registration found for this event."
 
 The simulator test uses a local development database. Creating a channel does
 not deploy the Django backend. Do not commit tunnel hostnames, credentials, or

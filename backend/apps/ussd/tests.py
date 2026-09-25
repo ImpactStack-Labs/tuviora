@@ -180,3 +180,70 @@ class USSDCallbackTests(TestCase):
     def test_get_is_not_allowed(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 405)
+
+
+from apps.events.models import Feedback
+
+
+class USSDFeedbackTests(TestCase):
+    def setUp(self):
+        self.url = reverse("ussd-callback")
+        self.phone = "+256712345678"
+        organizer = get_user_model().objects.create_user(username="organizer")
+        self.attendee = get_user_model().objects.create_user(username="attendee")
+        SMSPreference.objects.create(
+            user=self.attendee, phone_number=self.phone, sms_enabled=True,
+        )
+        self.event = Event.objects.create(
+            organizer=organizer,
+            name="Tuviora Summit",
+            category=Event.Category.CONFERENCE,
+            date=date(2026, 9, 26),
+            start_time=time(9, 0),
+            end_time=time(17, 0),
+            venue="Kampala",
+            status=Event.Status.PUBLISHED,
+        )
+        EventRegistration.objects.create(
+            event=self.event, user=self.attendee,
+            status=EventRegistration.Status.CONFIRMED,
+        )
+
+    def send(self, text, phone=None):
+        return self.client.post(self.url, {
+            "sessionId": "s1",
+            "serviceCode": "*384*123#",
+            "phoneNumber": phone or self.phone,
+            "text": text,
+        }).content.decode()
+
+    def test_menu_lists_rating(self):
+        self.assertIn("5. Rate an event", self.send(""))
+
+    def test_rates_with_comment(self):
+        e = self.event.pk
+        self.assertIn("CON Enter the event ID", self.send("5"))
+        self.assertIn("CON Rate Tuviora Summit", self.send(f"5*{e}"))
+        self.assertIn("CON Add a comment", self.send(f"5*{e}*4"))
+        self.assertEqual(
+            self.send(f"5*{e}*4*Great talks*loved it"),
+            "END Thank you for your feedback.",
+        )
+        feedback = Feedback.objects.get()
+        self.assertEqual((feedback.rating, feedback.comment), (4, "Great talks*loved it"))
+
+    def test_skip_comment_with_9(self):
+        self.send(f"5*{self.event.pk}*5*9")
+        self.assertEqual(Feedback.objects.get().comment, "")
+
+    def test_invalid_rating(self):
+        self.assertEqual(
+            self.send(f"5*{self.event.pk}*7"),
+            "END Invalid rating. Please dial again.",
+        )
+
+    def test_unknown_phone_gets_generic_reply(self):
+        self.assertEqual(
+            self.send(f"5*{self.event.pk}", phone="+256700000001"),
+            "END No registration found for this event.",
+        )

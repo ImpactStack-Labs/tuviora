@@ -6,6 +6,8 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+from apps.events.models import EventRegistration
+from apps.events.services.feedback import submit_feedback
 from apps.voice_services.events import get_public_event, get_registration
 
 
@@ -14,12 +16,52 @@ MAIN_MENU = (
     "1. Event information\n"
     "2. Check registration\n"
     "3. Staff incident report\n"
+    "5. Rate an event\n"
     "0. Exit"
 )
 
 
 def reply(prefix, message):
     return HttpResponse(f"{prefix} {message}", content_type="text/plain")
+
+
+def rate_event(parts, phone):
+    """Option 5: rate a confirmed registration, then optionally comment."""
+    if len(parts) == 1:
+        return reply("CON", "Enter the event ID:")
+    if not parts[1].isdigit():
+        return reply("END", "Invalid event ID. Please dial again.")
+
+    try:
+        registration = get_registration(parts[1], phone)
+    except Exception:
+        return reply("END", "Feedback is unavailable. Please try later.")
+
+    if (
+        registration is None
+        or registration.status != EventRegistration.Status.CONFIRMED
+    ):
+        return reply("END", "No registration found for this event.")
+
+    if len(parts) == 2:
+        return reply(
+            "CON",
+            f"Rate {registration.event.name} from 1 (poor) to 5 (excellent):",
+        )
+    if parts[2] not in {"1", "2", "3", "4", "5"}:
+        return reply("END", "Invalid rating. Please dial again.")
+    if len(parts) == 3:
+        return reply("CON", "Add a comment, or enter 9 to skip:")
+
+    # Africa's Talking joins inputs with "*", so rejoin a comment containing it.
+    comment = "*".join(parts[3:]).strip()
+    submit_feedback(
+        registration.event,
+        registration.user,
+        rating=int(parts[2]),
+        comment="" if comment == "9" else comment,
+    )
+    return reply("END", "Thank you for your feedback.")
 
 
 @csrf_exempt
@@ -97,5 +139,8 @@ def ussd_callback(request):
             "END",
             "Staff reporting is being connected. Contact the organizer directly.",
         )
+
+    if parts[0] == "5":
+        return rate_event(parts, phone)
 
     return reply("CON", "Invalid choice.\n" + MAIN_MENU.removeprefix("CON "))
