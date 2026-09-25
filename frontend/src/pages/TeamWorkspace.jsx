@@ -4,10 +4,12 @@ import {
   CheckCircle2,
   ClipboardCheck,
   LogOut,
-  RefreshCw,
   Users,
 } from 'lucide-react'
 import { apiRequest, logoutOrganizer } from '../lib/auth'
+import StatCard from '../components/StatCard'
+import EmptyState from '../components/EmptyState'
+import LoadingRow from '../components/LoadingRow'
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -112,13 +114,13 @@ export default function TeamWorkspace({ user, onLogout }) {
 
   return (
     <div className="min-h-screen bg-[#F7F9F5] text-[#1A3F22]">
-      <header className="border-b border-[#E3E9DF] bg-white">
+      <header className="border-b border-border-soft bg-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-[#58761B]">
               Tuviora
             </p>
-            <h1 className="mt-1 text-2xl font-bold">
+            <h1 className="mt-1 text-3xl font-bold">
               Team Workspace
             </h1>
             <p className="mt-1 text-sm text-[#647064]">
@@ -129,7 +131,7 @@ export default function TeamWorkspace({ user, onLogout }) {
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#DDE6D6] px-4 py-2 text-sm font-semibold hover:bg-[#F0F5E9]"
+            className="inline-flex items-center gap-2 rounded-xl border border-border-soft px-4 py-2 text-sm font-semibold hover:bg-[#F0F5E9]"
           >
             <LogOut size={17} />
             Sign out
@@ -149,7 +151,7 @@ export default function TeamWorkspace({ user, onLogout }) {
         </div>
 
         {memberships.length > 0 && (
-          <section className="mb-7 rounded-2xl border border-[#E3E9DF] bg-white p-5">
+          <section className="mb-7 rounded-2xl border border-border-soft bg-white p-5">
             <label
               htmlFor="team-event"
               className="mb-2 block text-sm font-semibold"
@@ -163,7 +165,7 @@ export default function TeamWorkspace({ user, onLogout }) {
               onChange={(event) =>
                 setSelectedEventId(event.target.value)
               }
-              className="w-full rounded-xl border border-[#DDE6D6] bg-white px-4 py-3 sm:max-w-md"
+              className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 sm:max-w-md"
             >
               {memberships.map((membership) => (
                 <option
@@ -208,16 +210,7 @@ export default function TeamWorkspace({ user, onLogout }) {
               Icon: CheckCircle2,
             },
           ].map(({ label, value, Icon }) => (
-            <div
-              key={label}
-              className="rounded-2xl border border-[#E3E9DF] bg-white p-5"
-            >
-              <Icon size={23} className="text-[#58761B]" />
-              <p className="mt-4 text-3xl font-bold">{value}</p>
-              <p className="mt-1 text-sm text-[#647064]">
-                {label}
-              </p>
-            </div>
+            <StatCard key={label} label={label} value={value} icon={Icon} />
           ))}
         </div>
 
@@ -241,30 +234,19 @@ export default function TeamWorkspace({ user, onLogout }) {
           </h2>
 
           {loading ? (
-            <p className="flex items-center gap-2 text-[#647064]">
-              <RefreshCw size={18} className="animate-spin" />
-              Loading tasks...
-            </p>
+            <LoadingRow label="Loading tasks..." />
           ) : tasks.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-[#CCD8C4] bg-white p-10 text-center">
-              <ClipboardCheck
-                size={36}
-                className="mx-auto text-[#58761B]"
-              />
-              <h3 className="mt-4 font-bold">
-                No tasks to display yet
-              </h3>
-              <p className="mt-2 text-sm text-[#647064]">
-                Tasks will appear here when your organizer
-                assigns them to you.
-              </p>
-            </div>
+            <EmptyState
+              icon={ClipboardCheck}
+              title="No tasks to display yet"
+              description="Tasks will appear here when your organizer assigns them to you."
+            />
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {tasks.map((task) => (
                 <article
                   key={task.id}
-                  className="rounded-2xl border border-[#E3E9DF] bg-white p-5 shadow-sm"
+                  className="rounded-2xl border border-border-soft bg-white p-5 shadow-sm"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <h3 className="font-bold">{task.title}</h3>
@@ -300,7 +282,7 @@ export default function TeamWorkspace({ user, onLogout }) {
                           className={`rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-60 ${
                             task.status === value
                               ? 'bg-[#1A3F22] text-white'
-                              : 'border border-[#DDE6D6] hover:bg-[#F0F5E9]'
+                              : 'border border-border-soft hover:bg-[#F0F5E9]'
                           }`}
                         >
                           {label}

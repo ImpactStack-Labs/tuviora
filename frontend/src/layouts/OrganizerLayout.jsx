@@ -75,7 +75,7 @@ export default function OrganizerLayout({ user, onLogout }) {
       )}
 
       <div className="lg:pl-64">
-        <header className="flex h-20 items-center justify-between border-b border-[#E3E9DF] bg-white px-5 sm:px-8">
+        <header className="flex min-h-20 flex-wrap items-center justify-between gap-3 border-b border-border-soft bg-white px-5 py-3 sm:px-8">
           <div className="flex items-center gap-4">
             <button
               type="button"
@@ -85,17 +85,14 @@ export default function OrganizerLayout({ user, onLogout }) {
             >
               <Menu size={25} />
             </button>
-            <div>
-              <p className="text-xs text-[#718072]">ImpactStack Labs</p>
-              <p className="font-bold">Organizer Workspace</p>
-            </div>
+            <p className="font-bold">Organizer Workspace</p>
           </div>
 
           <div className="flex items-center gap-2">
             <ApiStatus />
-            <span className="rounded-full bg-[#EDF3E8] px-4 py-2 text-xs font-semibold text-[#58761B]">
-            Foundation Preview
-          </span>
+            <span className="hidden rounded-full bg-[#EDF3E8] px-4 py-2 text-xs font-semibold text-[#58761B] sm:inline-flex">
+              Foundation preview
+            </span>
           </div>
         </header>
 

@@ -119,8 +119,8 @@ export default function VenueSearch({
       )}
 
       {results.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-[#DCE5D8] bg-white">
-          <p className="border-b border-[#DCE5D8] px-4 py-3 text-sm font-semibold text-[#1A3F22]">
+        <div className="overflow-hidden rounded-xl border border-border-soft bg-white">
+          <p className="border-b border-border-soft px-4 py-3 text-sm font-semibold text-[#1A3F22]">
             Select the correct location
           </p>
 

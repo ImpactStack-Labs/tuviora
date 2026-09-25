@@ -9,6 +9,9 @@ import {
   Search,
   Users,
 } from 'lucide-react'
+import { formatEventDate, formatEventTime } from '../lib/format'
+import EmptyState from '../components/EmptyState'
+import LoadingRow from '../components/LoadingRow'
 
 const categoryLabels = {
   conference: 'Conference',
@@ -20,22 +23,6 @@ const categoryLabels = {
   community: 'Community',
   corporate: 'Corporate',
   other: 'Other',
-}
-
-function formatDate(value) {
-  return new Intl.DateTimeFormat('en-UG', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(`${value}T12:00:00Z`))
-}
-
-function formatTime(value) {
-  if (!value) return ''
-  const [hour, minute] = value.split(':').map(Number)
-  const suffix = hour >= 12 ? 'PM' : 'AM'
-  return `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${suffix}`
 }
 
 export default function PublicEvents() {
@@ -102,7 +89,7 @@ export default function PublicEvents() {
 
   return (
     <div className="min-h-screen bg-[#F7F9F5] text-[#1A3F22]">
-      <header className="border-b border-[#E1E8DC] bg-white">
+      <header className="border-b border-border-soft bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5 lg:px-8">
           <Link to="/" className="text-2xl font-bold tracking-tight">
             tuviora<span className="text-[#D99201]">.</span>
@@ -152,7 +139,7 @@ export default function PublicEvents() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search events or venues"
-                className="w-full rounded-xl border border-[#DCE5D8] bg-white py-3 pl-12 pr-4 outline-none focus:border-[#58761B]"
+                className="w-full rounded-xl border border-border-soft bg-white py-3 pl-12 pr-4 outline-none focus:border-[#58761B]"
               />
             </label>
 
@@ -161,7 +148,7 @@ export default function PublicEvents() {
               <select
                 value={category}
                 onChange={(event) => setCategory(event.target.value)}
-                className="w-full rounded-xl border border-[#DCE5D8] bg-white px-4 py-3 outline-none focus:border-[#58761B] sm:w-56"
+                className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 outline-none focus:border-[#58761B] sm:w-56"
               >
                 <option value="all">All categories</option>
                 {categories.map((item) => (
@@ -174,9 +161,9 @@ export default function PublicEvents() {
           </div>
 
           {loading ? (
-            <p role="status" className="py-20 text-center text-[#647064]">
-              Loading upcoming events...
-            </p>
+            <div className="py-20 text-center">
+              <LoadingRow label="Loading upcoming events..." />
+            </div>
           ) : error ? (
             <div role="alert" className="rounded-2xl border border-red-200 bg-white p-10 text-center">
               <p className="text-red-700">{error}</p>
@@ -188,17 +175,17 @@ export default function PublicEvents() {
               </button>
             </div>
           ) : visibleEvents.length === 0 ? (
-            <div className="rounded-2xl border border-[#E1E8DC] bg-white p-12 text-center">
-              <CalendarDays size={38} className="mx-auto text-[#58761B]" />
-              <h2 className="mt-5 text-2xl font-bold">
-                {events.length ? 'No matching events' : 'No upcoming events yet'}
-              </h2>
-              <p className="mt-3 text-[#647064]">
-                {events.length
+            <EmptyState
+              as="h2"
+              size="lg"
+              icon={CalendarDays}
+              title={events.length ? 'No matching events' : 'No upcoming events yet'}
+              description={
+                events.length
                   ? 'Try a different search or category.'
-                  : 'Check back soon for new events.'}
-              </p>
-            </div>
+                  : 'Check back soon for new events.'
+              }
+            />
           ) : (
             <>
               <p className="mb-6 text-sm font-medium text-[#647064]">
@@ -208,7 +195,7 @@ export default function PublicEvents() {
                 {visibleEvents.map((event) => (
                   <article
                     key={event.id}
-                    className="flex flex-col overflow-hidden rounded-2xl border border-[#E1E8DC] bg-white shadow-sm"
+                    className="flex flex-col overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm"
                   >
                     <div className="bg-[#EDF3E8] px-6 py-7">
                       <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold text-[#58761B]">
@@ -227,11 +214,11 @@ export default function PublicEvents() {
                       <div className="space-y-3 text-sm text-[#405642]">
                         <p className="flex items-center gap-3">
                           <CalendarDays size={18} className="shrink-0 text-[#58761B]" />
-                          {formatDate(event.date)}
+                          {formatEventDate(event.date)}
                         </p>
                         <p className="flex items-center gap-3">
                           <Clock3 size={18} className="shrink-0 text-[#58761B]" />
-                          {formatTime(event.start_time)} – {formatTime(event.end_time)}
+                          {formatEventTime(event.start_time)} – {formatEventTime(event.end_time)}
                         </p>
                         <p className="flex items-center gap-3">
                           <MapPin size={18} className="shrink-0 text-[#58761B]" />
@@ -247,7 +234,7 @@ export default function PublicEvents() {
                         )}
                       </div>
 
-                      <div className="mt-7 border-t border-[#E1E8DC] pt-5">
+                      <div className="mt-7 border-t border-border-soft pt-5">
                         <Link
                           to={`/events/${event.id}`}
                           className="flex items-center gap-2 text-sm font-semibold text-[#58761B] hover:underline"

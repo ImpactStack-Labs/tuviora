@@ -11,6 +11,11 @@ export function createEvent(event) {
   })
 }
 
+function humanizeField(field) {
+  if (field === 'non_field_errors' || field === 'detail') return ''
+  return field.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase())
+}
+
 export function formatApiError(error) {
   if (error.status === 401 || error.status === 403) {
     return 'Your session has expired. Please sign in again.'
@@ -23,7 +28,8 @@ export function formatApiError(error) {
           ? messages.join(', ')
           : String(messages)
 
-        return `${field}: ${text}`
+        const label = humanizeField(field)
+        return label ? `${label}: ${text}` : text
       })
       .join(' | ')
   }

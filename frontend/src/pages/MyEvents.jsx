@@ -1,4 +1,7 @@
 import { formatEventTimezone } from '../components/EventTimezone'
+import { formatEventDate, formatEventTime } from '../lib/format'
+import StatCard from '../components/StatCard'
+import LoadingRow from '../components/LoadingRow'
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowRight,
@@ -25,44 +28,6 @@ const statusStyles = {
 const categoryStyles =
   'bg-[#F0F4E9] text-[#58761B]'
 
-function formatDate(value) {
-  if (!value) return 'Date not set'
-
-  const date = new Date(`${value}T12:00:00`)
-
-  if (Number.isNaN(date.getTime())) return value
-
-  return new Intl.DateTimeFormat('en-UG', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(date)
-}
-
-function formatTime(value) {
-  if (!value) return 'Not set'
-
-  const parts = value.split(':')
-  const hours = Number(parts[0])
-  const minutes = Number(parts[1])
-
-  if (
-    !Number.isInteger(hours) ||
-    !Number.isInteger(minutes) ||
-    hours < 0 ||
-    hours > 23 ||
-    minutes < 0 ||
-    minutes > 59
-  ) {
-    return value
-  }
-
-  const period = hours >= 12 ? 'PM' : 'AM'
-  const hour = hours % 12 || 12
-
-  return `${hour}:${String(minutes).padStart(2, '0')} ${period}`
-}
-
 function EventCard({ event, onPublish, publishingId, onView }) {
   const isDraft = event.status === 'draft'
   const isOnline = event.event_format === 'virtual'
@@ -73,7 +38,7 @@ function EventCard({ event, onPublish, publishingId, onView }) {
     : event.venue || 'Venue not set'
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#E3EBDD] bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-[#B8CDA9] hover:shadow-md">
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-[#B8CDA9] hover:shadow-md">
       <div className="h-1.5 bg-[#58761B]" />
 
       <div className="flex flex-1 flex-col p-5 sm:p-6">
@@ -110,11 +75,11 @@ function EventCard({ event, onPublish, publishingId, onView }) {
               className="mt-0.5 shrink-0 text-[#58761B]"
             />
             <div>
-              <p className="text-xs font-medium text-[#758173]">
+              <p className="text-xs font-medium text-text-muted">
                 Event date
               </p>
               <p className="mt-0.5 text-sm font-semibold text-[#243B29]">
-                {formatDate(event.date)}
+                {formatEventDate(event.date)}
               </p>
             </div>
           </div>
@@ -125,13 +90,13 @@ function EventCard({ event, onPublish, publishingId, onView }) {
               className="mt-0.5 shrink-0 text-[#58761B]"
             />
             <div>
-              <p className="text-xs font-medium text-[#758173]">
+              <p className="text-xs font-medium text-text-muted">
                 Start and end time
               </p>
               <p className="mt-0.5 text-sm font-semibold text-[#243B29]">
-                {formatTime(event.start_time)}
+                {formatEventTime(event.start_time)}
                 <span className="mx-2 text-[#9BA99A]">–</span>
-                {formatTime(event.end_time)}
+                {formatEventTime(event.end_time)}
                 <span className="ml-2 text-sm font-normal text-gray-500">
                   ({formatEventTimezone(
                     event.timezone_name,
@@ -139,7 +104,7 @@ function EventCard({ event, onPublish, publishingId, onView }) {
                   )})
                 </span>
               </p>
-              <p className="mt-0.5 text-xs text-[#758173]">
+              <p className="mt-0.5 text-xs text-text-muted">
                 Event's local time
               </p>
             </div>
@@ -159,7 +124,7 @@ function EventCard({ event, onPublish, publishingId, onView }) {
             )}
 
             <div className="min-w-0">
-              <p className="text-xs font-medium text-[#758173]">
+              <p className="text-xs font-medium text-text-muted">
                 {isOnline
                   ? 'Online platform'
                   : isHybrid
@@ -181,7 +146,7 @@ function EventCard({ event, onPublish, publishingId, onView }) {
         </div>
 
         <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-[#E8EDE5] pt-5">
-          <span className="text-xs font-medium text-[#8A9689]">
+          <span className="text-xs font-medium text-text-muted">
             Event ID: {event.id}
           </span>
 
@@ -202,7 +167,7 @@ function EventCard({ event, onPublish, publishingId, onView }) {
             <button
               type="button"
               onClick={() => onView(event)}
-              className="inline-flex items-center gap-2 rounded-xl border border-[#DCE7D7] px-4 py-2.5 text-sm font-semibold text-[#1A3F22] transition hover:bg-[#F0F5EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#58761B]"
+              className="inline-flex items-center gap-2 rounded-xl border border-border-soft px-4 py-2.5 text-sm font-semibold text-[#1A3F22] transition hover:bg-[#F0F5EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#58761B]"
             >
               View details
               <ArrowRight size={16} />
@@ -211,26 +176,6 @@ function EventCard({ event, onPublish, publishingId, onView }) {
         </div>
       </div>
     </article>
-  )
-}
-
-function SummaryCard({ label, value, icon: Icon, accent }) {
-  return (
-    <div className="rounded-2xl border border-[#E3EBDD] bg-white p-5 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-[#647064]">
-          {label}
-        </p>
-
-        <div className={`rounded-xl p-2.5 ${accent}`}>
-          <Icon size={19} />
-        </div>
-      </div>
-
-      <p className="mt-4 text-3xl font-bold tracking-tight text-[#1A3F22]">
-        {value}
-      </p>
-    </div>
   )
 }
 
@@ -261,7 +206,7 @@ function EventDetailsModal({ event, onClose, onPublish, publishingId }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="event-details-title"
-        className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl sm:p-8"
+        className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -297,30 +242,30 @@ function EventDetailsModal({ event, onClose, onPublish, publishingId }) {
 
         <div className="mt-6 grid gap-4 rounded-xl bg-[#F7F9F5] p-5 sm:grid-cols-2">
           <div>
-            <p className="text-xs text-[#758173]">Category</p>
+            <p className="text-xs text-text-muted">Category</p>
             <p className="mt-1 font-semibold capitalize text-[#1A3F22]">
               {event.category}
             </p>
           </div>
 
           <div>
-            <p className="text-xs text-[#758173]">Date</p>
+            <p className="text-xs text-text-muted">Date</p>
             <p className="mt-1 font-semibold text-[#1A3F22]">
-              {formatDate(event.date)}
+              {formatEventDate(event.date)}
             </p>
           </div>
 
           <div>
-            <p className="text-xs text-[#758173]">Start time</p>
+            <p className="text-xs text-text-muted">Start time</p>
             <p className="mt-1 font-semibold text-[#1A3F22]">
-              {formatTime(event.start_time)}
+              {formatEventTime(event.start_time)}
             </p>
           </div>
 
           <div>
-            <p className="text-xs text-[#758173]">End time</p>
+            <p className="text-xs text-text-muted">End time</p>
             <p className="mt-1 font-semibold text-[#1A3F22]">
-              {formatTime(event.end_time)}
+              {formatEventTime(event.end_time)}
                 <span className="ml-2 text-sm font-normal text-gray-500">
                   ({formatEventTimezone(
                     event.timezone_name,
@@ -331,14 +276,14 @@ function EventDetailsModal({ event, onClose, onPublish, publishingId }) {
           </div>
 
           <div>
-            <p className="text-xs text-[#758173]">Venue</p>
+            <p className="text-xs text-text-muted">Venue</p>
             <p className="mt-1 font-semibold text-[#1A3F22]">
               {event.venue || 'Online'}
             </p>
           </div>
 
           <div>
-            <p className="text-xs text-[#758173]">Capacity</p>
+            <p className="text-xs text-text-muted">Capacity</p>
             <p className="mt-1 font-semibold text-[#1A3F22]">
               {event.capacity ?? 'Not specified'}
             </p>
@@ -346,7 +291,7 @@ function EventDetailsModal({ event, onClose, onPublish, publishingId }) {
 
           {event.online_platform && (
             <div className="sm:col-span-2">
-              <p className="text-xs text-[#758173]">Online platform</p>
+              <p className="text-xs text-text-muted">Online platform</p>
               <p className="mt-1 font-semibold text-[#1A3F22]">
                 {event.online_platform}
               </p>
@@ -358,7 +303,7 @@ function EventDetailsModal({ event, onClose, onPublish, publishingId }) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-[#DCE7D7] px-5 py-3 text-sm font-semibold text-[#1A3F22] hover:bg-[#F7F9F5]"
+            className="rounded-xl border border-border-soft px-5 py-3 text-sm font-semibold text-[#1A3F22] hover:bg-[#F7F9F5]"
           >
             Close
           </button>
@@ -407,7 +352,7 @@ function PublishModal({ event, onCancel, onConfirm, publishing }) {
         aria-modal="true"
         aria-labelledby="publish-title"
         aria-describedby="publish-description"
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-8"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8"
       >
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EDF6E9] text-[#356B35]">
           <CheckCircle2 size={25} />
@@ -428,19 +373,19 @@ function PublishModal({ event, onCancel, onConfirm, publishing }) {
           available through Tuviora's public Voice lookup.
         </p>
 
-        <div className="mt-5 rounded-xl border border-[#E3EBDD] bg-[#F7F9F5] p-4">
+        <div className="mt-5 rounded-xl border border-border-soft bg-[#F7F9F5] p-4">
           <p className="font-bold text-[#1A3F22]">
             {event.name}
           </p>
 
           <p className="mt-2 text-sm text-[#647064]">
-            {formatDate(event.date)}
+            {formatEventDate(event.date)}
           </p>
 
           <p className="mt-1 text-sm text-[#647064]">
-            {formatTime(event.start_time)}
+            {formatEventTime(event.start_time)}
             {' – '}
-            {formatTime(event.end_time)}
+            {formatEventTime(event.end_time)}
                 <span className="ml-2 text-sm font-normal text-gray-500">
                   ({formatEventTimezone(
                     event.timezone_name,
@@ -459,7 +404,7 @@ function PublishModal({ event, onCancel, onConfirm, publishing }) {
             type="button"
             disabled={publishing}
             onClick={onCancel}
-            className="rounded-xl border border-[#DCE7D7] px-5 py-3 text-sm font-semibold text-[#1A3F22] hover:bg-[#F7F9F5] disabled:opacity-60"
+            className="rounded-xl border border-border-soft px-5 py-3 text-sm font-semibold text-[#1A3F22] hover:bg-[#F7F9F5] disabled:opacity-60"
           >
             Cancel
           </button>
@@ -609,8 +554,8 @@ export default function MyEvents() {
     <div className="mx-auto w-full max-w-7xl space-y-8 pb-10">
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div>
-          <p className="mb-2 text-sm font-semibold tracking-wide text-[#58761B]">
-            ORGANIZER WORKSPACE
+          <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-[#58761B]">
+            Organizer workspace
           </p>
 
           <h1 className="text-3xl font-bold tracking-tight text-[#1A3F22] sm:text-4xl">
@@ -651,21 +596,21 @@ export default function MyEvents() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <SummaryCard
+        <StatCard
           label="Total events"
           value={counts.total}
           icon={CalendarDays}
           accent="bg-[#EEF3E8] text-[#58761B]"
         />
 
-        <SummaryCard
+        <StatCard
           label="Published"
           value={counts.published}
           icon={CheckCircle2}
           accent="bg-[#E8F6E9] text-[#356B35]"
         />
 
-        <SummaryCard
+        <StatCard
           label="Drafts"
           value={counts.draft}
           icon={FilePenLine}
@@ -673,7 +618,7 @@ export default function MyEvents() {
         />
       </div>
 
-      <section className="rounded-2xl border border-[#E3EBDD] bg-white p-5 shadow-sm sm:p-7">
+      <section className="rounded-2xl border border-border-soft bg-white p-5 shadow-sm sm:p-7">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold text-[#1A3F22]">
@@ -698,7 +643,7 @@ export default function MyEvents() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search your events"
               aria-label="Search your events"
-              className="w-full rounded-xl border border-[#DCE7D7] bg-white py-3 pl-10 pr-4 text-sm text-[#1A3F22] outline-none transition focus:border-[#58761B] focus:ring-2 focus:ring-[#58761B]/15"
+              className="w-full rounded-xl border border-border-soft bg-white py-3 pl-10 pr-4 text-sm text-[#1A3F22] outline-none transition focus:border-[#58761B] focus:ring-2 focus:ring-[#58761B]/15"
             />
           </div>
         </div>
@@ -728,11 +673,8 @@ export default function MyEvents() {
         </div>
 
         {loading ? (
-          <div
-            role="status"
-            className="py-16 text-center text-[#647064]"
-          >
-            Loading your events...
+          <div className="py-16 text-center">
+            <LoadingRow label="Loading your events..." />
           </div>
         ) : visibleEvents.length === 0 ? (
           <div className="flex flex-col items-center py-16 text-center">

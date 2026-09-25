@@ -14,22 +14,8 @@ import {
   MapPin,
   Users,
 } from 'lucide-react'
-
-function formatDate(value) {
-  return new Intl.DateTimeFormat('en-UG', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(`${value}T12:00:00Z`))
-}
-
-function formatTime(value) {
-  if (!value) return ''
-  const [hour, minute] = value.split(':').map(Number)
-  const suffix = hour >= 12 ? 'PM' : 'AM'
-  return `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${suffix}`
-}
+import { formatEventDate, formatEventTime } from '../lib/format'
+import LoadingRow from '../components/LoadingRow'
 
 export default function PublicEventDetail() {
   const { eventId } = useParams()
@@ -177,7 +163,7 @@ export default function PublicEventDetail() {
 
   return (
     <main className="min-h-screen bg-[#F7F9F5] text-[#1A3F22]">
-      <header className="border-b border-[#E1E8DC] bg-white px-5 py-5">
+      <header className="border-b border-border-soft bg-white px-5 py-5">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <Link to="/" className="text-2xl font-bold">
             tuviora<span className="text-[#D99201]">.</span>
@@ -202,13 +188,13 @@ export default function PublicEventDetail() {
 
       <div className="mx-auto max-w-5xl px-5 py-12">
         {loading ? (
-          <p role="status">Loading event...</p>
+          <LoadingRow label="Loading event..." />
         ) : error ? (
           <div role="alert" className="rounded-2xl bg-white p-8 text-red-700">
             {error}
           </div>
         ) : event && (
-          <div className="overflow-hidden rounded-3xl border border-[#E1E8DC] bg-white shadow-sm">
+          <div className="overflow-hidden rounded-3xl border border-border-soft bg-white shadow-sm">
             <section className="bg-[#1A3F22] px-7 py-12 text-white sm:px-12">
               <p className="text-sm font-semibold uppercase tracking-widest text-[#E9B64E]">
                 {event.category}
@@ -227,12 +213,12 @@ export default function PublicEventDetail() {
 
                 <p className="flex items-center gap-3">
                   <CalendarDays className="text-[#58761B]" />
-                  {formatDate(event.date)}
+                  {formatEventDate(event.date)}
                 </p>
 
                 <p className="flex items-center gap-3">
                   <Clock3 className="text-[#58761B]" />
-                  {formatTime(event.start_time)} – {formatTime(event.end_time)}
+                  {formatEventTime(event.start_time)} – {formatEventTime(event.end_time)}
                 </p>
 
                 <p className="flex items-center gap-3">
@@ -250,7 +236,7 @@ export default function PublicEventDetail() {
                 )}
               </div>
 
-              <div className="rounded-2xl border border-[#E1E8DC] bg-[#F7F9F5] p-7">
+              <div className="rounded-2xl border border-border-soft bg-[#F7F9F5] p-7">
                 <h2 className="text-2xl font-bold">Join this event</h2>
                 {checkingSession ? (
                   <p role="status" className="mt-4 text-[#647064]">
@@ -271,7 +257,7 @@ export default function PublicEventDetail() {
                           {event.ticket_types.map((ticket) => (
                             <label
                               key={ticket.id}
-                              className="flex items-center justify-between rounded-xl border border-[#DCE5D8] p-4"
+                              className="flex items-center justify-between rounded-xl border border-border-soft p-4"
                             >
                               <span className="flex items-center gap-3">
                                 <input
