@@ -33,6 +33,7 @@ class OutboundCallbackTests(TestCase):
                 "sessionId": "outbound-session-1",
                 "direction": "Outbound",
                 "destinationNumber": "+256700000099",
+                "isActive": "1",
             },
         )
 
@@ -55,6 +56,7 @@ class OutboundCallbackTests(TestCase):
                 "sessionId": "outbound-session-2",
                 "direction": "Outbound",
                 "destinationNumber": "+256700000098",
+                "isActive": "1",
             },
         )
 
@@ -67,10 +69,33 @@ class OutboundCallbackTests(TestCase):
                 "sessionId": "outbound-session-3",
                 "direction": "Outbound",
                 "destinationNumber": "+256700000097",
+                "isActive": "1",
             },
         )
 
         self.assertEqual(response.status_code, 200)
+
+    def test_termination_callback_does_not_consume_pending_call(self):
+        PendingVoiceCall.objects.create(
+            phone_number="+256700000099",
+            message="Keep me",
+            expires_at=timezone.now() + timedelta(minutes=10),
+        )
+
+        response = self.client.post(
+            self.url,
+            {
+                "sessionId": "outbound-session-4",
+                "direction": "Outbound",
+                "destinationNumber": "+256700000099",
+                "isActive": "0",
+                "durationInSeconds": "12",
+                "callSessionState": "Success",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(PendingVoiceCall.objects.count(), 1)
 
     def test_inbound_calls_are_unaffected(self):
         response = self.client.post(

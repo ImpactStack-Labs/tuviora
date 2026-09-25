@@ -1,5 +1,6 @@
 """Critical-incident voice call escalation, organizer/managers only."""
 
+import logging
 from datetime import timedelta
 
 from django.utils import timezone
@@ -9,6 +10,8 @@ from apps.sms.models import SMSPreference
 
 from .models import PendingVoiceCall
 from .outbound_call_service import VoiceCallError, place_call
+
+logger = logging.getLogger(__name__)
 
 PENDING_CALL_LIFETIME = timedelta(minutes=10)
 
@@ -67,8 +70,12 @@ def call_team_for_incident(incident):
         try:
             place_call(phone_number)
             dialed += 1
-        except VoiceCallError:
+        except VoiceCallError as exc:
             failed += 1
+            logger.warning(
+                "Voice call failed for incident %s to %s: %s",
+                incident.id, phone_number, exc,
+            )
 
     return {
         "dialed": dialed,

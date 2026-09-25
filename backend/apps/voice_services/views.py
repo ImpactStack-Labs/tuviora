@@ -1,5 +1,6 @@
 """Africa's Talking Voice callbacks for Tuviora."""
 
+import logging
 from xml.etree.ElementTree import Element, SubElement, tostring
 
 from django.conf import settings
@@ -13,6 +14,8 @@ from .events import describe_event, get_public_event
 from .languages import LANGUAGES, LANGUAGE_SELECTION
 from .menus import get_message
 from .models import PendingVoiceCall
+
+logger = logging.getLogger(__name__)
 
 
 SESSION_TIMEOUT = 3600
@@ -58,7 +61,17 @@ def _handle_outbound_callback(request):
     Africa's Talking's outbound-call callback payload is expected to
     include `destinationNumber` — verify this field name against a real
     sandbox call if it ever stops matching.
+
+    Africa's Talking posts to this callback twice per call: once while
+    active (isActive=1, expects XML back) and once at termination
+    (isActive=0, no response body needed). Only the active POST should
+    look up and consume a pending call — a termination POST from an
+    unrelated call must never delete another pending row for the same
+    number.
     """
+    if request.POST.get("isActive") != "1":
+        return HttpResponse(status=200)
+
     phone_number = request.POST.get("destinationNumber", "").strip()
 
     pending = (
@@ -72,6 +85,10 @@ def _handle_outbound_callback(request):
     )
 
     if pending is None:
+        logger.warning(
+            "No pending voice call found for outbound callback to %s.",
+            phone_number,
+        )
         return voice_response("Goodbye.", finish=True)
 
     message = pending.message

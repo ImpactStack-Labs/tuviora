@@ -15,6 +15,17 @@ from .outbound_call_service import VoiceCallError, place_call
 class PlaceCallTests(TestCase):
     @patch("apps.voice_services.outbound_call_service.africastalking")
     def test_places_call_with_configured_number(self, mock_sdk):
+        mock_sdk.Voice.call.return_value = {
+            "entries": [
+                {
+                    "phoneNumber": "+256700000001",
+                    "sessionId": "ATVId_test",
+                    "status": "Queued",
+                }
+            ],
+            "errorMessage": "None",
+        }
+
         place_call("+256700000001")
 
         mock_sdk.initialize.assert_called_once_with(
@@ -23,6 +34,22 @@ class PlaceCallTests(TestCase):
         mock_sdk.Voice.call.assert_called_once_with(
             "+256711000000", ["+256700000001"],
         )
+
+    @patch("apps.voice_services.outbound_call_service.africastalking")
+    def test_rejected_call_raises_voice_call_error(self, mock_sdk):
+        mock_sdk.Voice.call.return_value = {
+            "entries": [
+                {
+                    "phoneNumber": "+256700000001",
+                    "sessionId": "ATVId_test",
+                    "status": "InvalidPhoneNumber",
+                }
+            ],
+            "errorMessage": "None",
+        }
+
+        with self.assertRaises(VoiceCallError):
+            place_call("+256700000001")
 
     @patch("apps.voice_services.outbound_call_service.africastalking")
     def test_provider_error_raises_voice_call_error(self, mock_sdk):
