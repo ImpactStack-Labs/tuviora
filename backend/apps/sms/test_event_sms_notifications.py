@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from apps.sms.models import SMSPreference
-from apps.sms.services.event_sms_notifications import send_event_sms
+from apps.sms.services.event_sms_notifications import send_attendee_sms
 from apps.sms.services.sms_service import SMSServiceError
 
 
@@ -50,7 +50,7 @@ class EventSMSNotificationTests(TestCase):
         self,
         mock_send,
     ):
-        result = send_event_sms(
+        result = send_attendee_sms(
             [self.opted_in.id, self.opted_out.id],
             "Your event starts tomorrow.",
         )
@@ -69,7 +69,7 @@ class EventSMSNotificationTests(TestCase):
         self,
         mock_send,
     ):
-        send_event_sms(
+        send_attendee_sms(
             [self.opted_in.id],
             "Event update.",
         )
@@ -91,7 +91,7 @@ class EventSMSNotificationTests(TestCase):
             "Simulated provider failure"
         )
 
-        result = send_event_sms(
+        result = send_attendee_sms(
             [self.opted_in.id],
             "Important update.",
         )
@@ -106,7 +106,7 @@ class EventSMSNotificationTests(TestCase):
         self,
         mock_send,
     ):
-        result = send_event_sms(
+        result = send_attendee_sms(
             [self.opted_out.id],
             "Event reminder.",
         )
@@ -121,14 +121,14 @@ class EventSMSNotificationTests(TestCase):
         self,
         mock_send,
     ):
-        result = send_event_sms([], "Event update.")
+        result = send_attendee_sms([], "Event update.")
 
         mock_send.assert_not_called()
         self.assertEqual(result["submitted"], 0)
 
     def test_empty_message_is_rejected(self):
         with self.assertRaises(ValueError):
-            send_event_sms(
+            send_attendee_sms(
                 [self.opted_in.id],
                 "   ",
             )

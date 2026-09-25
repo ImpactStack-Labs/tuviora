@@ -511,7 +511,7 @@ class MarzPayWebhookAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    @patch("apps.events.payment_views.send_event_sms")
+    @patch("apps.events.payment_views.send_attendee_sms")
     def test_duplicate_webhook_delivery_confirms_and_sms_once(
         self, mock_send_sms
     ):

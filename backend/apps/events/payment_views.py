@@ -9,7 +9,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.sms.services.event_sms_notifications import send_event_sms
+from apps.sms.services.event_sms_notifications import send_attendee_sms
 from apps.sms.services.sms_service import validate_phone_number
 
 from .models import EventRegistration, Payment
@@ -186,7 +186,7 @@ def _send_payment_confirmation_sms(payment):
         f"Tuviora: Payment received for {event_name}. "
         "Your registration is confirmed."
     )
-    send_event_sms([payment.registration.user_id], message)
+    send_attendee_sms([payment.registration.user_id], message)
 
 
 class MarzPayWebhookView(APIView):
