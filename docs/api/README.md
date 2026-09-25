@@ -111,6 +111,14 @@ is not confirmed. See [Payments](../payments/README.md).
 | POST | `/api/events/invitations/accept/` | signed in (the invitee) | Accept using the invitation token |
 | POST | `/api/events/<event_id>/team/message/` | organizer or manager | SMS the organizer and all accepted members: `{"message": "..."}` |
 
+## Announcements
+
+| Method | Endpoint | Access | Purpose |
+| --- | --- | --- | --- |
+| GET, POST | `/api/events/<event_id>/announcements/` | organizer or manager | Announcement history, or SMS `{"message": "..."}` (1–480 chars) to confirmed, opted-in attendees |
+
+`python manage.py send_event_reminders` texts confirmed attendees of events happening tomorrow; run it daily from cron. Running it twice on the same day sends once.
+
 ## Readiness tasks
 
 | Method | Endpoint | Access | Purpose |

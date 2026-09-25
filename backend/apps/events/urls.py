@@ -1,3 +1,4 @@
+from .announcement_views import EventAnnouncementView
 from .ticket_checkin_views import TicketCheckInView
 from .registration_ticket_views import MyRegistrationTicketView
 from .public_views import PublicEventDetailView, PublicEventListView
@@ -103,6 +104,11 @@ urlpatterns = [
         "invitations/accept/",
         InvitationAcceptView.as_view(),
         name="event-invitation-accept",
+    ),
+    path(
+        "<int:event_id>/announcements/",
+        EventAnnouncementView.as_view(),
+        name="event-announcements",
     ),
     path(
         "<int:event_id>/team/",

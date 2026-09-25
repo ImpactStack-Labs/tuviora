@@ -703,3 +703,32 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.reference} ({self.status})"
+
+
+class EventAnnouncement(models.Model):
+    """An SMS sent to an event's confirmed attendees."""
+
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name="announcements",
+    )
+    # Null means an automatic reminder from send_event_reminders.
+    sent_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sent_announcements",
+    )
+    message = models.TextField()
+    submitted = models.PositiveIntegerField(default=0)
+    failed = models.PositiveIntegerField(default=0)
+    skipped = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return f"Announcement for {self.event.name}"
