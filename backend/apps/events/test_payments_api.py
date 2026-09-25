@@ -3,6 +3,9 @@
 from decimal import Decimal
 from datetime import timedelta
 from unittest.mock import patch
+import hashlib
+import hmac
+import json
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
@@ -254,3 +257,145 @@ class InitiatePaymentAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Payment.objects.count(), 2)
+
+
+@override_settings(
+    SMS_ENABLED=False, MARZPAY_WEBHOOK_SECRET="test-webhook-secret"
+)
+class MarzPayWebhookAPITests(APITestCase):
+    def setUp(self):
+        organizer = User.objects.create_user(
+            username="webhook_organizer", password="TestPassword123!"
+        )
+        attendee = User.objects.create_user(
+            username="webhook_attendee", password="TestPassword123!"
+        )
+        event = Event.objects.create(
+            organizer=organizer,
+            name="Tuviora Webhook Test",
+            category=Event.Category.CONFERENCE,
+            date=timezone.localdate() + timedelta(days=7),
+            start_time="09:00",
+            end_time="17:00",
+            venue="Kampala",
+            status=Event.Status.PUBLISHED,
+        )
+        ticket = TicketType.objects.create(
+            event=event, name="Standard", price=Decimal("25000.00")
+        )
+        self.registration = EventRegistration.objects.create(
+            event=event,
+            user=attendee,
+            ticket_type=ticket,
+            amount_due=ticket.price,
+            currency=ticket.currency,
+            status=EventRegistration.Status.PAYMENT_PENDING,
+        )
+        self.payment = Payment.objects.create(
+            registration=self.registration,
+            reference="webhook-ref-1",
+            method=Payment.Method.MOBILE_MONEY,
+            phone_number="+256700123456",
+            amount=ticket.price,
+            currency=ticket.currency,
+            status=Payment.Status.PROCESSING,
+        )
+        self.webhook_url = "/api/payments/marzpay/webhook/"
+
+    def _post_signed(self, payload):
+        body = json.dumps(payload).encode()
+        timestamp = "1700000000"
+        digest = hmac.new(
+            b"test-webhook-secret",
+            f"{timestamp}.".encode() + body,
+            hashlib.sha256,
+        ).hexdigest()
+
+        return self.client.post(
+            self.webhook_url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_MARZPAY_TIMESTAMP=timestamp,
+            HTTP_X_MARZPAY_SIGNATURE=f"t={timestamp},v1={digest}",
+        )
+
+    def test_completed_collection_confirms_registration(self):
+        response = self._post_signed(
+            {
+                "event_type": "collection.completed",
+                "transaction": {
+                    "uuid": "provider-uuid-1",
+                    "reference": "webhook-ref-1",
+                    "status": "completed",
+                },
+            }
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.registration.refresh_from_db()
+        self.payment.refresh_from_db()
+        self.assertEqual(
+            self.registration.status, EventRegistration.Status.CONFIRMED
+        )
+        self.assertEqual(self.payment.status, "completed")
+        self.assertEqual(
+            self.payment.provider_transaction_id, "provider-uuid-1"
+        )
+
+    def test_failed_collection_does_not_confirm_registration(self):
+        response = self._post_signed(
+            {
+                "event_type": "collection.failed",
+                "transaction": {
+                    "uuid": "provider-uuid-2",
+                    "reference": "webhook-ref-1",
+                    "status": "failed",
+                },
+            }
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.registration.refresh_from_db()
+        self.payment.refresh_from_db()
+        self.assertEqual(
+            self.registration.status,
+            EventRegistration.Status.PAYMENT_PENDING,
+        )
+        self.assertEqual(self.payment.status, "failed")
+
+    def test_invalid_signature_is_rejected(self):
+        response = self.client.post(
+            self.webhook_url,
+            data=json.dumps(
+                {
+                    "event_type": "collection.completed",
+                    "transaction": {"reference": "webhook-ref-1"},
+                }
+            ).encode(),
+            content_type="application/json",
+            HTTP_X_MARZPAY_TIMESTAMP="1700000000",
+            HTTP_X_MARZPAY_SIGNATURE="t=1700000000,v1=deadbeef",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.registration.refresh_from_db()
+        self.assertEqual(
+            self.registration.status,
+            EventRegistration.Status.PAYMENT_PENDING,
+        )
+
+    def test_unknown_reference_is_acknowledged_without_error(self):
+        response = self._post_signed(
+            {
+                "event_type": "collection.completed",
+                "transaction": {
+                    "uuid": "provider-uuid-3",
+                    "reference": "no-such-reference",
+                    "status": "completed",
+                },
+            }
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)

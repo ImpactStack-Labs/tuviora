@@ -1,17 +1,25 @@
+import logging
 import uuid
 
 from django.conf import settings
 from django.db import transaction
 from django.http import Http404
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import EventRegistration, Payment
 from .payment_serializers import PaymentSerializer
-from .services.marzpay_service import MarzPayError, initiate_collection
+from .services.event_sms_notifications import send_event_sms
+from .services.marzpay_service import (
+    MarzPayError,
+    initiate_collection,
+    verify_webhook_signature,
+)
 from .services.sms_service import validate_phone_number
+
+logger = logging.getLogger(__name__)
 
 
 class InitiateRegistrationPaymentView(APIView):
@@ -133,3 +141,85 @@ class InitiateRegistrationPaymentView(APIView):
             PaymentSerializer(payment).data,
             status=status.HTTP_201_CREATED,
         )
+
+
+def _send_payment_confirmation_sms(payment):
+    event_name = payment.registration.event.name
+    message = (
+        f"Tuviora: Payment received for {event_name}. "
+        "Your registration is confirmed."
+    )
+    send_event_sms([payment.registration.user_id], message)
+
+
+class MarzPayWebhookView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        timestamp = request.headers.get("X-MarzPay-Timestamp", "")
+        signature = request.headers.get("X-MarzPay-Signature", "")
+        secret = getattr(settings, "MARZPAY_WEBHOOK_SECRET", "")
+
+        if not verify_webhook_signature(
+            request.body, timestamp, signature, secret
+        ):
+            logger.warning(
+                "Rejected MarzPay webhook with invalid signature."
+            )
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        payload = request.data
+        event_type = payload.get("event_type", "")
+        transaction_payload = payload.get("transaction", {})
+        reference = transaction_payload.get("reference", "")
+        newly_confirmed = False
+
+        with transaction.atomic():
+            payment = (
+                Payment.objects.select_for_update()
+                .filter(reference=reference)
+                .first()
+            )
+
+            if payment is None:
+                logger.warning(
+                    "MarzPay webhook for unknown reference %s.",
+                    reference,
+                )
+                return Response(status=status.HTTP_200_OK)
+
+            payment.provider_transaction_id = transaction_payload.get(
+                "uuid", payment.provider_transaction_id
+            )
+            payment.status = transaction_payload.get(
+                "status", payment.status
+            )
+            payment.raw_response = payload
+            payment.save(
+                update_fields=[
+                    "provider_transaction_id",
+                    "status",
+                    "raw_response",
+                    "updated_at",
+                ]
+            )
+
+            if event_type == "collection.completed":
+                registration = payment.registration
+                if (
+                    registration.status
+                    == EventRegistration.Status.PAYMENT_PENDING
+                ):
+                    registration.status = (
+                        EventRegistration.Status.CONFIRMED
+                    )
+                    registration.save(
+                        update_fields=["status", "updated_at"]
+                    )
+                    newly_confirmed = True
+
+        if newly_confirmed:
+            _send_payment_confirmation_sms(payment)
+
+        return Response(status=status.HTTP_200_OK)
