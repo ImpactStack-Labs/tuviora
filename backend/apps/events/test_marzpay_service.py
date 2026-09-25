@@ -151,3 +151,15 @@ class MarzPayWebhookSignatureTests(SimpleTestCase):
                 b"{}", "1700000000", "t=1700000000,v1=abc", ""
             )
         )
+
+    def test_malformed_signature_with_non_ascii_returns_false(self):
+        # Regression test: ensure non-ASCII characters in v1 signature
+        # return False instead of raising TypeError
+        self.assertFalse(
+            verify_webhook_signature(
+                b'{"event_type":"collection.completed"}',
+                "1700000000",
+                "t=1700000000,v1=💥",
+                "webhook-secret",
+            )
+        )

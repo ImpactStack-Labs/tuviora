@@ -4,6 +4,7 @@ import base64
 import hashlib
 import hmac
 import logging
+import re
 
 import requests
 from django.conf import settings
@@ -136,6 +137,11 @@ def verify_webhook_signature(raw_body, timestamp, signature_header, secret):
     provided = parts.get("v1", "")
 
     if not provided:
+        return False
+
+    # Validate that provided is a well-formed hex string to prevent
+    # TypeError when comparing with non-ASCII characters
+    if not re.fullmatch(r"[0-9a-f]+", provided):
         return False
 
     if isinstance(raw_body, str):
