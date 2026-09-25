@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getEvents, formatApiError } from '../lib/events'
+import { getLeadEvents, formatApiError } from '../lib/events'
 
 export default function EventPicker({ id, value, onChange, onError }) {
   const [events, setEvents] = useState([])
@@ -8,7 +8,7 @@ export default function EventPicker({ id, value, onChange, onError }) {
   useEffect(() => {
     let active = true
 
-    getEvents()
+    getLeadEvents()
       .then((data) => {
         if (!active) return
         const list = Array.isArray(data) ? data : data.results || []

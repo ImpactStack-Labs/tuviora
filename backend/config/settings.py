@@ -108,6 +108,13 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        'OPTIONS': {
+            # Take SQLite's write lock at BEGIN so concurrent writers
+            # (e.g. two attendees registering at once) wait instead of
+            # failing with "database is locked".
+            'transaction_mode': 'IMMEDIATE',
+            'timeout': 20,
+        },
     }
 }
 
