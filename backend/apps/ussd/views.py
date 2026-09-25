@@ -1,5 +1,6 @@
 """Africa's Talking USSD callback for Tuviora."""
 
+import hmac
 import re
 
 from django.conf import settings
@@ -83,11 +84,11 @@ def register_event(parts, phone):
     site = settings.FRONTEND_BASE_URL.rstrip("/")
 
     try:
-        preference = (
-            SMSPreference.objects.select_related("user")
-            .filter(phone_number=phone)
-            .first()
+        # A phone saved on several accounts is ambiguous: treat it as unknown.
+        matches = list(
+            SMSPreference.objects.select_related("user").filter(phone_number=phone)[:2]
         )
+        preference = matches[0] if len(matches) == 1 else None
         if preference is None:
             return reply(
                 "END",
@@ -152,6 +153,14 @@ def register_event(parts, phone):
 @require_POST
 def ussd_callback(request):
     """Respond to Africa's Talking's cumulative, star-separated input."""
+    token = settings.USSD_CALLBACK_TOKEN
+    if token and not hmac.compare_digest(
+        request.GET.get("token", "").encode(), token.encode()
+    ):
+        response = reply("END", "Unable to process this session. Please try again.")
+        response.status_code = 403
+        return response
+
     session_id = request.POST.get("sessionId", "")
     phone = request.POST.get("phoneNumber", "")
     text = request.POST.get("text", "")

@@ -30,12 +30,13 @@ def get_registration(event_id, phone_number):
     if not str(event_id).isdigit():
         return None
 
-    preference = SMSPreference.objects.filter(
-        phone_number=phone_number,
-    ).first()
-
-    if preference is None:
+    # A phone saved on several accounts is ambiguous: treat it as unknown.
+    matches = list(
+        SMSPreference.objects.filter(phone_number=phone_number)[:2]
+    )
+    if len(matches) != 1:
         return None
+    preference = matches[0]
 
     return (
         EventRegistration.objects

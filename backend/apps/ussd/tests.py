@@ -251,6 +251,14 @@ class USSDFeedbackTests(TestCase):
             "END No registration found for this event.",
         )
 
+    def test_phone_shared_by_two_accounts_gets_generic_reply(self):
+        other = get_user_model().objects.create_user(username="other")
+        SMSPreference.objects.create(user=other, phone_number=self.phone)
+        self.assertEqual(
+            self.send(f"5*{self.event.pk}"),
+            "END No registration found for this event.",
+        )
+
     @patch("apps.ussd.views.submit_feedback", side_effect=Exception("boom"))
     def test_submit_feedback_error_gets_generic_reply(self, mock_submit_feedback):
         self.assertEqual(
@@ -332,6 +340,16 @@ class USSDRegistrationTests(TestCase):
             "Sign up at https://tuviora.test/signup and add this number.",
         )
 
+    def test_phone_shared_by_two_accounts(self):
+        other = get_user_model().objects.create_user(username="other")
+        SMSPreference.objects.create(user=other, phone_number=self.phone)
+        self.assertEqual(
+            self.send(f"4*{self.event.pk}*1"),
+            "END No Tuviora account uses this phone. "
+            "Sign up at https://tuviora.test/signup and add this number.",
+        )
+        self.assertFalse(EventRegistration.objects.exists())
+
     def test_paid_event(self):
         TicketType.objects.create(event=self.event, name="VIP", price=Decimal("10000"))
         self.assertEqual(
@@ -368,3 +386,30 @@ class USSDRegistrationTests(TestCase):
             self.send(f"4*{self.event.pk}"),
             "END Registration is unavailable. Please try later.",
         )
+
+
+@override_settings(USSD_CALLBACK_TOKEN="s3cret")
+class USSDCallbackTokenTests(TestCase):
+    payload = {
+        "sessionId": "s1",
+        "serviceCode": "*384*123#",
+        "phoneNumber": "+256712345678",
+        "text": "",
+    }
+
+    def post(self, query=""):
+        return self.client.post(reverse("ussd-callback") + query, self.payload)
+
+    def test_missing_or_wrong_token_is_rejected(self):
+        for query in ("", "?token=wrong"):
+            response = self.post(query)
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(
+                response.content.decode(),
+                "END Unable to process this session. Please try again.",
+            )
+
+    def test_correct_token_gets_main_menu(self):
+        response = self.post("?token=s3cret")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.content.decode().startswith("CON Welcome"))

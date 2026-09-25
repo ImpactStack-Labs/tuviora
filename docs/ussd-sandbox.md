@@ -17,7 +17,14 @@ the test, and keep `DEBUG` off (`DJANGO_DEBUG=False`, which requires
 `DJANGO_SECRET_KEY`) while the tunnel is public. In Africa's Talking sandbox, create
 a USSD channel on the shared `*384#` code. Set its Callback URL to:
 
-    https://YOUR-TUNNEL-HOST/api/ussd/callback/
+    https://YOUR-TUNNEL-HOST/api/ussd/callback/?token=YOUR-TOKEN
+
+Whenever the callback is publicly reachable, set `USSD_CALLBACK_TOKEN` in
+`backend/.env` to a long random value and append `?token=<value>` to the
+Callback URL, as above: options 4 and 5 write data (registrations and
+feedback). Requests without the matching token get a 403 with "END Unable to
+process this session." When `USSD_CALLBACK_TOKEN` is empty (local testing),
+no token is required.
 
 Launch the web simulator and dial the full code assigned to the channel.
 A temporary tunnel address changes when restarted; update the Callback URL and
