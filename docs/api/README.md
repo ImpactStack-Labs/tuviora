@@ -101,6 +101,17 @@ when the user is already registered or the event is full. Check-in returns
 `409` when the ticket has already been used and `403` when the registration
 is not confirmed. See [Payments](../payments/README.md).
 
+## Budget, payments and analytics
+
+| Method | Endpoint | Access | Purpose |
+| --- | --- | --- | --- |
+| GET, POST | `/api/events/<event_id>/budget/` | organizer or manager | Budget lines: `category`, `description`, `vendor`, `planned_amount`, `actual_amount`, `paid` |
+| GET, PUT, PATCH, DELETE | `/api/events/<event_id>/budget/<id>/` | organizer or manager | Manage one line |
+| GET | `/api/events/<event_id>/summary/` | organizer or manager | Registrations (by status, day, ticket type), attendance and check-in rate, payments collected and pending, budget planned/actual/unpaid/net, average rating |
+| GET | `/api/events/<event_id>/payments/` | organizer | Payment list with attendee, amount, method and status |
+
+Budget categories: venue, catering, equipment, marketing, transport, staff, other. Net = payments collected − actual spend.
+
 ## Team
 
 | Method | Endpoint | Access | Purpose |
