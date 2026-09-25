@@ -5,6 +5,7 @@ import {
   registerForEvent,
   getMyEventRegistration,
   cancelMyEventRegistration,
+  initiateRegistrationPayment,
 } from '../lib/events'
 import { clearAttendeeReturn } from '../lib/attendeeReturn'
 import {
@@ -25,6 +26,11 @@ export default function PublicEventDetail() {
   const [checkingSession, setCheckingSession] = useState(true)
   const [registrationError, setRegistrationError] = useState('')
   const [selectedTicketTypeId, setSelectedTicketTypeId] = useState(null)
+  const [paymentMethod, setPaymentMethod] = useState('mobile_money')
+  const [paymentPhone, setPaymentPhone] = useState('')
+  const [paymentError, setPaymentError] = useState('')
+  const [payingNow, setPayingNow] = useState(false)
+  const [polling, setPolling] = useState(false)
   const [working, setWorking] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -116,6 +122,24 @@ export default function PublicEventDetail() {
     }
   }, [eventId])
 
+  useEffect(() => {
+    if (!polling) return undefined
+
+    const interval = setInterval(async () => {
+      try {
+        const latest = await getMyEventRegistration(eventId)
+        setRegistration(latest)
+        if (latest.status !== 'payment_pending') {
+          setPolling(false)
+        }
+      } catch {
+        // Keep polling; a transient error shouldn't stop the check.
+      }
+    }, 4000)
+
+    return () => clearInterval(interval)
+  }, [polling, eventId])
+
   async function handleRegister() {
     setWorking(true)
     setRegistrationError('')
@@ -138,6 +162,29 @@ export default function PublicEventDetail() {
       }
     } finally {
       setWorking(false)
+    }
+  }
+
+  async function handlePay() {
+    setPayingNow(true)
+    setPaymentError('')
+
+    try {
+      const payment = await initiateRegistrationPayment(eventId, {
+        method: paymentMethod,
+        phoneNumber: paymentMethod === 'mobile_money' ? paymentPhone : undefined,
+      })
+
+      if (payment.redirect_url) {
+        window.location.href = payment.redirect_url
+        return
+      }
+
+      setPolling(true)
+    } catch (err) {
+      setPaymentError(err.message || 'Unable to start payment. Please try again.')
+    } finally {
+      setPayingNow(false)
     }
   }
 
@@ -281,12 +328,68 @@ export default function PublicEventDetail() {
                       )}
 
                     {registration?.status === 'payment_pending' ? (
-                      <div
-                        role="status"
-                        className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
-                      >
-                        Your spot is reserved. Payment collection is
-                        coming soon — you'll be notified how to pay.
+                      <div className="mt-6 space-y-4">
+                        <div
+                          role="status"
+                          className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
+                        >
+                          Your spot is reserved — complete payment of{' '}
+                          {registration.amount_due} {registration.currency}{' '}
+                          to confirm it.
+                        </div>
+
+                        {polling && (
+                          <p role="status" className="text-sm text-[#647064]">
+                            Waiting for payment confirmation...
+                          </p>
+                        )}
+
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              checked={paymentMethod === 'mobile_money'}
+                              onChange={() => setPaymentMethod('mobile_money')}
+                            />
+                            Mobile Money
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              checked={paymentMethod === 'card'}
+                              onChange={() => setPaymentMethod('card')}
+                            />
+                            Card
+                          </label>
+                        </div>
+
+                        {paymentMethod === 'mobile_money' && (
+                          <input
+                            value={paymentPhone}
+                            onChange={(event) => setPaymentPhone(event.target.value)}
+                            placeholder="+256700123456"
+                            className="w-full rounded-xl border border-[#DCE5D8] bg-white px-4 py-3"
+                          />
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={handlePay}
+                          disabled={payingNow || polling}
+                          className="w-full rounded-xl bg-[#1A3F22] px-5 py-3.5 font-semibold text-white hover:bg-[#31563A] disabled:opacity-60"
+                        >
+                          {payingNow
+                            ? 'Starting payment...'
+                            : paymentMethod === 'card'
+                              ? 'Pay by card'
+                              : 'Send payment prompt'}
+                        </button>
+
+                        {paymentError && (
+                          <p role="alert" className="text-sm text-red-700">
+                            {paymentError}
+                          </p>
+                        )}
                       </div>
                     ) : registration?.status === 'confirmed' ? (
                       <>

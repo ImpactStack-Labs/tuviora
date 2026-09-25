@@ -4,6 +4,7 @@ from django.urls import include, path
 from .views import health_check
 from . import auth_views
 from apps.accounts import views as account_views
+from apps.events.payment_views import MarzPayWebhookView
 
 
 urlpatterns = [
@@ -22,4 +23,9 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/health/", health_check, name="api-health"),
     path("api/events/", include("apps.events.urls")),
+    path(
+        "api/payments/marzpay/webhook/",
+        MarzPayWebhookView.as_view(),
+        name="marzpay-webhook",
+    ),
 ]

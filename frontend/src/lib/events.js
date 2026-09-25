@@ -56,6 +56,16 @@ export function registerForEvent(eventId, ticketTypeId) {
   })
 }
 
+export function initiateRegistrationPayment(eventId, { method, phoneNumber }) {
+  return apiRequest(`/api/events/${eventId}/registrations/me/pay/`, {
+    method: 'POST',
+    body: JSON.stringify({
+      method,
+      ...(phoneNumber ? { phone_number: phoneNumber } : {}),
+    }),
+  })
+}
+
 export function getMyEventRegistration(eventId) {
   return apiRequest(`/api/events/${eventId}/registrations/me/`)
 }

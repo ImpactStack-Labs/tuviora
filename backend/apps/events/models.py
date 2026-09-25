@@ -590,3 +590,74 @@ class EventRegistration(models.Model):
             f"{self.user} - {self.event} "
             f"({self.status})"
         )
+
+
+class Payment(models.Model):
+    class Method(models.TextChoices):
+        MOBILE_MONEY = "mobile_money", "Mobile Money"
+        CARD = "card", "Card"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        PROCESSING = "processing", "Processing"
+        COMPLETED = "completed", "Completed"
+        FAILED = "failed", "Failed"
+        CANCELLED = "cancelled", "Cancelled"
+
+    registration = models.ForeignKey(
+        EventRegistration,
+        on_delete=models.CASCADE,
+        related_name="payments",
+    )
+
+    reference = models.CharField(max_length=64, unique=True)
+
+    provider_transaction_id = models.CharField(
+        max_length=64,
+        blank=True,
+    )
+
+    method = models.CharField(
+        max_length=20,
+        choices=Method.choices,
+    )
+
+    phone_number = models.CharField(max_length=20, blank=True)
+
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    currency = models.CharField(max_length=3)
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+
+    redirect_url = models.URLField(blank=True)
+
+    raw_response = models.JSONField(default=dict, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            # Backstop for the in-progress check in payment_views.py:
+            # select_for_update() is a no-op on sqlite (the project's
+            # actual DB today), so without this, two concurrent requests
+            # could both pass the application-level check and both INSERT.
+            # Nested classes don't share Payment's body scope, so this
+            # can't reference Status.PENDING/PROCESSING directly here —
+            # using the raw enum values instead (they're the DB values
+            # Status.PENDING/PROCESSING actually store).
+            models.UniqueConstraint(
+                fields=["registration"],
+                condition=models.Q(status__in=["pending", "processing"]),
+                name="one_payment_in_progress_per_registration",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.reference} ({self.status})"
