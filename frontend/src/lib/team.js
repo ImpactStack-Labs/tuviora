@@ -28,3 +28,10 @@ export function acceptEventInvitation(token) {
     body: JSON.stringify({ token }),
   })
 }
+
+export function sendTeamMessage(eventId, message) {
+  return apiRequest(`/api/events/${eventId}/team/message/`, {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  })
+}

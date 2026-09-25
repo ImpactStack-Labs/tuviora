@@ -17,6 +17,7 @@ import {
   getEventInvitations,
   getEventTeam,
   revokeEventInvitation,
+  sendTeamMessage,
 } from '../lib/team'
 
 const ROLE_LABELS = {
@@ -50,6 +51,8 @@ export default function EventTeam() {
   const [inviteLink, setInviteLink] = useState('')
   const [copied, setCopied] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [teamMessage, setTeamMessage] = useState('')
+  const [sendingMessage, setSendingMessage] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -162,6 +165,31 @@ export default function EventTeam() {
     }
   }
 
+  async function handleSendTeamMessage(event) {
+    event.preventDefault()
+    if (!selectedEventId || sendingMessage || !teamMessage.trim()) return
+
+    setSendingMessage(true)
+    setError('')
+    setNotice('')
+
+    try {
+      const result = await sendTeamMessage(
+        selectedEventId,
+        teamMessage.trim(),
+      )
+      setTeamMessage('')
+      setNotice(
+        `Message sent to ${result.submitted} team member`
+        + `${result.submitted === 1 ? '' : 's'}.`,
+      )
+    } catch (err) {
+      setError(formatApiError(err))
+    } finally {
+      setSendingMessage(false)
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -233,6 +261,37 @@ export default function EventTeam() {
             {selectedEvent.category} · {selectedEvent.date}
           </p>
         )}
+      </section>
+
+      <section className="rounded-2xl border border-border-soft bg-white p-5 shadow-sm sm:p-6">
+        <h2 className="text-lg font-semibold text-[#1A3F22]">
+          Message team
+        </h2>
+        <p className="mt-1 text-sm text-text-muted">
+          Sends an SMS to the organizer and every accepted team member
+          for this event.
+        </p>
+        <form
+          onSubmit={handleSendTeamMessage}
+          className="mt-4 flex flex-col gap-3 sm:flex-row"
+        >
+          <textarea
+            value={teamMessage}
+            onChange={(event) => setTeamMessage(event.target.value)}
+            placeholder="Type a message for the team..."
+            rows={2}
+            className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 outline-none focus:border-[#58761B]"
+          />
+          <button
+            type="submit"
+            disabled={
+              !selectedEventId || sendingMessage || !teamMessage.trim()
+            }
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#58761B] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {sendingMessage ? 'Sending...' : 'Send'}
+          </button>
+        </form>
       </section>
 
       {selectedEventId && (
