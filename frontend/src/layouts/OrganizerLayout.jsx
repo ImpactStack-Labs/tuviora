@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { logoutOrganizer } from '../lib/auth'
 import { Route, Routes } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import ApiStatus from '../components/ApiStatus'
@@ -11,14 +12,39 @@ import CreateEvent from '../pages/CreateEvent'
 import EventReadiness from '../pages/EventReadiness'
 import EventTeam from '../pages/EventTeam'
 import EventRegistrations from '../pages/EventRegistrations'
+import LiveOperations from '../pages/LiveOperations'
 
-export default function OrganizerLayout() {
+export default function OrganizerLayout({ user, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
+  const [logoutError, setLogoutError] = useState('')
+
+  async function handleLogout() {
+    if (signingOut) return
+
+    setSigningOut(true)
+    setLogoutError('')
+
+    try {
+      await logoutOrganizer()
+      onLogout()
+    } catch (err) {
+      setLogoutError(
+        err.message || 'Unable to sign out. Please try again.',
+      )
+    } finally {
+      setSigningOut(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#F7F9F5] text-[#1A3F22]">
       <aside className="fixed inset-y-0 left-0 hidden w-64 overflow-y-auto lg:block">
-        <Sidebar />
+        <Sidebar
+          user={user}
+          onLogout={handleLogout}
+          signingOut={signingOut}
+        />
       </aside>
 
       {menuOpen && (
@@ -38,7 +64,12 @@ export default function OrganizerLayout() {
             >
               <X size={24} />
             </button>
-            <Sidebar closeMenu={() => setMenuOpen(false)} />
+            <Sidebar
+              closeMenu={() => setMenuOpen(false)}
+              user={user}
+              onLogout={handleLogout}
+              signingOut={signingOut}
+            />
           </aside>
         </div>
       )}
@@ -68,6 +99,15 @@ export default function OrganizerLayout() {
           </div>
         </header>
 
+        {logoutError && (
+          <div
+            role="alert"
+            className="mx-auto mt-5 max-w-[1500px] rounded-lg bg-red-50 px-5 py-3 text-sm text-red-700"
+          >
+            {logoutError}
+          </div>
+        )}
+
         <main className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8">
           <Routes>
             <Route index element={<OrganizerOverview />} />
@@ -76,7 +116,8 @@ export default function OrganizerLayout() {
             <Route path="readiness" element={<EventReadiness />} />
             <Route path="team" element={<EventTeam />} />
             <Route path="registration" element={<EventRegistrations />} />
-            {navigation.slice(1).filter(({ path }) => path !== 'events' && path !== 'readiness' && path !== 'team' && path !== 'registration').map(({ name, path }) => (
+            <Route path="live" element={<LiveOperations />} />
+            {navigation.slice(1).filter(({ path }) => path !== 'events' && path !== 'readiness' && path !== 'team' && path !== 'registration' && path !== 'live').map(({ name, path }) => (
               <Route
                 key={path}
                 path={path}
