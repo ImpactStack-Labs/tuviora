@@ -1,6 +1,6 @@
 import json
 
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
@@ -79,6 +79,19 @@ def sign_in(request):
     )
 
     if user is None or not user.is_active:
+        # Right password on an unverified account: say why, since
+        # "invalid password" sends people in circles. Wrong passwords
+        # still get the generic message, so nothing new is revealed.
+        pending = get_user_model().objects.filter(
+            username=username, is_active=False,
+        ).first()
+        if pending is not None and pending.check_password(password):
+            return JsonResponse(
+                {"detail": "Please verify your email before signing in. "
+                           "Check your inbox for the verification link."},
+                status=400,
+            )
+
         return JsonResponse(
             {"detail": "Invalid username or password."},
             status=400,

@@ -118,6 +118,16 @@ class RegistrationTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+        self.assertIn("verify your email", response.json()["detail"])
+
+        wrong = self.client.post(
+            reverse("auth-login"),
+            {"username": "grace_demo", "password": "wrong"},
+            content_type="application/json",
+        )
+        self.assertEqual(
+            wrong.json()["detail"], "Invalid username or password.",
+        )
 
     def test_valid_verification_activates_account(self):
         self.register()
