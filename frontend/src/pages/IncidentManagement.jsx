@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { apiRequest } from '../lib/auth'
 import { getEvents } from '../lib/events'
+import { callTeamForIncident } from '../lib/team'
 
 const STATUSES = [
   ['open', 'Open'],
@@ -19,6 +20,7 @@ export default function IncidentManagement() {
   const [notice, setNotice] = useState('')
   const [savingId, setSavingId] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [callingId, setCallingId] = useState(null)
 
   useEffect(() => {
     let active = true
@@ -95,6 +97,26 @@ export default function IncidentManagement() {
       setError(err.message)
     } finally {
       setSavingId(null)
+    }
+  }
+
+  async function handleCallTeam(incident) {
+    if (callingId !== null) return
+
+    setCallingId(incident.id)
+    setError('')
+    setNotice('')
+
+    try {
+      const result = await callTeamForIncident(eventId, incident.id)
+      setNotice(
+        `Called ${result.dialed} team member`
+        + `${result.dialed === 1 ? '' : 's'}.`,
+      )
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setCallingId(null)
     }
   }
 
@@ -224,6 +246,21 @@ export default function IncidentManagement() {
                   </button>
                 ))}
               </div>
+
+              {incident.severity === 'critical' && (
+                <div className="mt-3 border-t border-[#EDF0EA] pt-4">
+                  <button
+                    type="button"
+                    disabled={callingId !== null}
+                    onClick={() => handleCallTeam(incident)}
+                    className="rounded-lg bg-[#B42318] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    {callingId === incident.id
+                      ? 'Calling...'
+                      : 'Call the team'}
+                  </button>
+                </div>
+              )}
             </article>
           ))}
         </div>

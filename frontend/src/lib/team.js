@@ -28,3 +28,10 @@ export function acceptEventInvitation(token) {
     body: JSON.stringify({ token }),
   })
 }
+
+export function callTeamForIncident(eventId, incidentId) {
+  return apiRequest(
+    `/api/voice/events/${eventId}/incidents/${incidentId}/call-team/`,
+    { method: 'POST' },
+  )
+}
