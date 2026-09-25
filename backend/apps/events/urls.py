@@ -12,6 +12,7 @@ from .team_views import (
     EventInvitationView,
     EventInvitationRevokeView,
     InvitationAcceptView,
+    MessageTeamView,
 )
 
 from django.urls import path
@@ -93,6 +94,11 @@ urlpatterns = [
         "<int:event_id>/team/",
         EventTeamView.as_view(),
         name="event-team",
+    ),
+    path(
+        "<int:event_id>/team/message/",
+        MessageTeamView.as_view(),
+        name="event-team-message",
     ),
     path(
         "<int:event_id>/invitations/",
