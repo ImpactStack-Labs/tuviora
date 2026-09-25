@@ -13,7 +13,11 @@ journeys, roles and revenue model.
 
 ## API
 
-[API documentation](api/README.md)
+[API reference](api/README.md): every endpoint, its access rules and statuses.
+
+## Frontend
+
+[Frontend guide](../frontend/README.md): routes, pages and the dev proxy.
 
 ## Integrations
 
@@ -24,6 +28,11 @@ journeys, roles and revenue model.
 [USSD sandbox and testing](ussd-sandbox.md)
 
 [Voice services and private conferencing](../backend/apps/voice_services/README.md)
+
+## Plans and specs
+
+[Implementation plans](superpowers/plans/) and [design specs](superpowers/specs/)
+for features already built (payments, ticket types, incident calls, team SMS).
 
 ## Research
 

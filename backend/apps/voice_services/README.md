@@ -1,11 +1,31 @@
 # Tuviora Voice Services
 
 Tuviora's voice services include a multilingual public event-information
-menu and a private event conference feature.
+menu, critical-incident calls to event leads and a private event
+conference feature.
 
-## Current development status
+## Multilingual voice menu
 
-The conference backend is under development on `feature/voice-conference`.
+`POST /api/voice/callback/` offers English, Kiswahili and Luganda, then
+a menu for event information, venue directions and registration
+assistance. Speech is generated with Sunbird AI text-to-speech
+(`sunbird.py`, requires `SUNBIRD_API_KEY`).
+
+## Critical-incident calls
+
+`POST /api/voice/events/<event_id>/incidents/<incident_id>/call-team/`
+lets the organizer or an event manager place automated voice calls about
+a **critical** incident to the organizer and all accepted managers who
+have a saved phone number. SMS consent is not required for these safety
+calls. The endpoint returns `503` unless
+`VOICE_CRITICAL_CALLS_ENABLED=true`, and it requires `AT_VOICE_NUMBER` and
+Africa's Talking credentials.
+
+## Private conferences
+
+### Current development status
+
+The conference backend is merged into `dev` but not yet usable end to end.
 It has automated tests for conference permissions, lifecycle operations,
 one-time access codes, caller sessions, rate limiting, provider commands
 and the private callback's fail-closed behavior.
@@ -17,7 +37,7 @@ established. Live conference calling is not ready.
 Keep `VOICE_CONFERENCE_ENABLED=false` until the required security and
 end-to-end integration work is complete.
 
-## Permissions
+### Permissions
 
 - Organizer: start and end their event's conference, obtain an access
   code and join.
@@ -27,7 +47,7 @@ end-to-end integration work is complete.
 Conference permissions use the event membership system. Membership is
 checked again when a verified caller attempts to access a conference.
 
-## Conference lifecycle
+### Conference lifecycle
 
 A conference starts in the ready state, becomes active when its organizer
 starts it, and becomes ended when the organizer terminates it.
@@ -51,11 +71,12 @@ All event conference management endpoints require authentication.
 | POST | `/api/voice/events/<event_id>/conference/end/` | Organizer ends conference |
 | POST | `/api/voice/events/<event_id>/conference/access-code/` | Eligible member requests a one-time code |
 | POST | `/api/voice/conference/callback/` | Private callback; currently rejects all requests |
+| POST | `/api/voice/events/<event_id>/incidents/<incident_id>/call-team/` | Critical-incident call (see above) |
 
 The existing public multilingual voice menu remains at
 `/api/voice/callback/` and is separate from the conference callback.
 
-## Access codes and caller sessions
+### Access codes and caller sessions
 
 Eligible members can request an eight-digit, one-time access code.
 Codes expire after ten minutes and are stored as keyed hashes.
@@ -75,7 +96,7 @@ From the repository root, install backend dependencies:
 pip install -r backend/requirements.txt
 ```
 
-Create your local `.env` from the repository's `.env.example` and
+Copy the repository's `.env.example` to `backend/.env` and
 configure the required application settings. Never commit `.env`
 or real credentials.
 
@@ -104,11 +125,13 @@ python manage.py test apps.voice_services
 - `AT_VOICE_CALLBACK_URL`: configured voice callback URL.
 - `VOICE_CONFERENCE_ENABLED`: keep `false` until live integration is ready.
 - `VOICE_CONFERENCE_MAX_PARTICIPANTS`: conference participant limit.
+- `VOICE_CRITICAL_CALLS_ENABLED`: enables critical-incident calls.
+- `SUNBIRD_API_KEY`: Sunbird AI text-to-speech for the voice menu.
 - `REDIS_URL`: shared Redis connection for multi-instance session state
   and rate limiting.
 
-Existing Africa's Talking credentials are read from the application's
-configured username and API key settings. Do not include credentials
+Africa's Talking credentials are read from `AFRICASTALKING_USERNAME`
+and `AFRICASTALKING_API_KEY`. Do not include credentials
 in callback URLs.
 
 A shared Redis cache and configured voice number are required by
