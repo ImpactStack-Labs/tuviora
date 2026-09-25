@@ -40,13 +40,17 @@ Organizers create readiness tasks and assign them to team members. Members see o
 
 The organizer and team members check attendees in by scanning the ticket QR code or entering the ticket reference. Only confirmed tickets can be checked in, and each ticket only once.
 
+### Budget, payments and analytics
+
+Organizers track planned versus actual costs per budget line (with vendor and paid status), see ticket revenue and pending payments, and view registrations per day, by ticket type, check-in rate and average rating.
+
 ### Live operations and incidents
 
 Team members report incidents by category and severity during an event. The organizer and managers update incident status. For **critical** incidents they can trigger automated voice calls to the organizer and event managers (behind `VOICE_CRITICAL_CALLS_ENABLED`).
 
 ### AI assistance
 
-Using OpenAI through the backend API (no frontend screens yet), organizers can:
+Using OpenAI through the backend API (feedback summary on the Feedback page; incident analysis via the API), organizers can:
 
 - request an AI analysis of an incident (classification, suggested severity, priority, recommended actions and a draft message), which they must approve before it is acted on;
 - collect attendee feedback and generate an AI summary of it.
@@ -57,8 +61,8 @@ Venue search and map components (Leaflet) support location-based event informati
 
 ### Accessible channels (Africa's Talking)
 
-- **SMS:** registration welcome, payment confirmation and team messages; always opt-in and disabled by default. See [SMS integration](docs/sms-integration.md).
-- **USSD:** look up a published event and check your own registration status from a basic phone. See [USSD sandbox](docs/ussd-sandbox.md).
+- **SMS:** registration welcome, payment confirmation, organizer announcements, daily event reminders and team messages; always opt-in and disabled by default. See [SMS integration](docs/sms-integration.md).
+- **USSD:** look up a published event, register for a free event, check your registration status and rate an event from a basic phone. See [USSD sandbox](docs/ussd-sandbox.md).
 - **Voice:** a multilingual voice menu (English, Kiswahili, Luganda) using Sunbird AI text-to-speech.
 
 The private voice conference backend is still in development: organizer-controlled conference management, membership-based access and one-time access codes exist, but live conference calling is not ready. See [Voice Services](backend/apps/voice_services/README.md).

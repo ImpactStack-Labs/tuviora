@@ -1,8 +1,10 @@
 from datetime import date, time
+from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.http import Http404
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from apps.sms.models import SMSPreference
@@ -254,4 +256,108 @@ class USSDFeedbackTests(TestCase):
         self.assertEqual(
             self.send(f"5*{self.event.pk}*4*9"),
             "END Feedback is unavailable. Please try later.",
+        )
+
+
+@override_settings(FRONTEND_BASE_URL="https://tuviora.test")
+class USSDRegistrationTests(TestCase):
+    def setUp(self):
+        self.url = reverse("ussd-callback")
+        self.phone = "+256712345678"
+        organizer = get_user_model().objects.create_user(username="organizer")
+        self.attendee = get_user_model().objects.create_user(username="attendee")
+        self.preference = SMSPreference.objects.create(
+            user=self.attendee, phone_number=self.phone, sms_enabled=True,
+        )
+        self.event = Event.objects.create(
+            organizer=organizer,
+            name="Free Workshop",
+            category=Event.Category.WORKSHOP,
+            date=date.today(),
+            start_time=time(9, 0),
+            end_time=time(12, 0),
+            venue="Kampala",
+            status=Event.Status.PUBLISHED,
+        )
+
+    def send(self, text, phone=None):
+        return self.client.post(self.url, {
+            "sessionId": "s1",
+            "serviceCode": "*384*123#",
+            "phoneNumber": phone or self.phone,
+            "text": text,
+        }).content.decode()
+
+    def test_menu_lists_registration(self):
+        self.assertIn("4. Register for an event", self.send(""))
+
+    @patch("apps.ussd.views.send_sms")
+    def test_registers_and_confirms_by_sms(self, send_sms):
+        e = self.event.pk
+        self.assertIn("CON Enter the event ID", self.send("4"))
+        self.assertIn("CON Register for Free Workshop", self.send(f"4*{e}"))
+
+        with self.captureOnCommitCallbacks(execute=True):
+            reply = self.send(f"4*{e}*1")
+
+        self.assertEqual(reply, "END You're registered for Free Workshop.")
+        registration = EventRegistration.objects.get()
+        self.assertEqual(registration.status, EventRegistration.Status.CONFIRMED)
+        send_sms.assert_called_once()
+        self.assertEqual(send_sms.call_args.args[0], self.phone)
+
+    @patch("apps.ussd.views.send_sms")
+    def test_no_sms_without_consent(self, send_sms):
+        self.preference.sms_enabled = False
+        self.preference.save()
+        with self.captureOnCommitCallbacks(execute=True):
+            self.send(f"4*{self.event.pk}*1")
+        self.assertTrue(EventRegistration.objects.exists())
+        send_sms.assert_not_called()
+
+    def test_free_ticket_type_is_used(self):
+        free = TicketType.objects.create(event=self.event, name="General", price=Decimal("0"))
+        TicketType.objects.create(event=self.event, name="VIP", price=Decimal("10000"))
+        self.send(f"4*{self.event.pk}*1")
+        self.assertEqual(EventRegistration.objects.get().ticket_type, free)
+
+    def test_decline(self):
+        self.assertEqual(self.send(f"4*{self.event.pk}*2"), "END Registration cancelled.")
+        self.assertFalse(EventRegistration.objects.exists())
+
+    def test_unknown_phone(self):
+        self.assertEqual(
+            self.send(f"4*{self.event.pk}", phone="+256700000001"),
+            "END No Tuviora account uses this phone. "
+            "Sign up at https://tuviora.test/signup and add this number.",
+        )
+
+    def test_paid_event(self):
+        TicketType.objects.create(event=self.event, name="VIP", price=Decimal("10000"))
+        self.assertEqual(
+            self.send(f"4*{self.event.pk}"),
+            f"END This event requires payment. Register at https://tuviora.test/events/{self.event.pk}.",
+        )
+
+    def test_full_event(self):
+        self.event.capacity = 0
+        self.event.save()
+        self.assertEqual(self.send(f"4*{self.event.pk}*1"), "END This event is fully booked.")
+
+    def test_already_registered(self):
+        EventRegistration.objects.create(
+            event=self.event, user=self.attendee,
+            status=EventRegistration.Status.CONFIRMED,
+        )
+        self.assertEqual(self.send(f"4*{self.event.pk}*1"), "END You are already registered.")
+
+    def test_unknown_event(self):
+        self.assertEqual(self.send("4*99999"), "END Published event not found.")
+        self.assertEqual(self.send("4*abc"), "END Invalid event ID. Please dial again.")
+
+    @patch("apps.ussd.views.register_for_event", side_effect=Http404)
+    def test_event_deleted_during_registration(self, mock_register):
+        self.assertEqual(
+            self.send(f"4*{self.event.pk}*1"),
+            "END Published event not found.",
         )

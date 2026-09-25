@@ -2,12 +2,17 @@
 
 import re
 
-from django.http import HttpResponse
+from django.conf import settings
+from django.db import transaction
+from django.http import Http404, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from apps.events.models import EventRegistration
+from apps.events.models import EventRegistration, TicketType
 from apps.events.services.feedback import submit_feedback
+from apps.events.services.registration import RegistrationError, register_for_event
+from apps.sms.models import SMSPreference
+from apps.sms.services.sms_service import SMSServiceError, send_sms
 from apps.voice_services.events import get_public_event, get_registration
 
 
@@ -16,6 +21,7 @@ MAIN_MENU = (
     "1. Event information\n"
     "2. Check registration\n"
     "3. Staff incident report\n"
+    "4. Register for an event\n"
     "5. Rate an event\n"
     "0. Exit"
 )
@@ -65,6 +71,77 @@ def rate_event(parts, phone):
     except Exception:
         return reply("END", "Feedback is unavailable. Please try later.")
     return reply("END", "Thank you for your feedback.")
+
+
+def register_event(parts, phone):
+    """Option 4: register an existing account for a free event."""
+    if len(parts) == 1:
+        return reply("CON", "Enter the event ID:")
+    if not parts[1].isdigit():
+        return reply("END", "Invalid event ID. Please dial again.")
+
+    site = settings.FRONTEND_BASE_URL
+    preference = (
+        SMSPreference.objects.select_related("user")
+        .filter(phone_number=phone)
+        .first()
+    )
+    if preference is None:
+        return reply(
+            "END",
+            "No Tuviora account uses this phone. "
+            f"Sign up at {site}/signup and add this number.",
+        )
+
+    event = get_public_event(parts[1])
+    if event is None:
+        return reply("END", "Published event not found.")
+
+    ticket_types = TicketType.objects.filter(event=event, is_active=True)
+    ticket_type = None
+    if ticket_types.exists():
+        ticket_type = ticket_types.filter(price=0).order_by("price", "pk").first()
+        if ticket_type is None:
+            return reply(
+                "END",
+                f"This event requires payment. Register at {site}/events/{event.pk}.",
+            )
+
+    if len(parts) == 2:
+        return reply(
+            "CON",
+            f"Register for {event.name}, {event.date:%d %b} "
+            f"{event.start_time:%H:%M}?\n1. Yes\n2. No",
+        )
+    if parts[2] != "1":
+        return reply("END", "Registration cancelled.")
+
+    try:
+        register_for_event(
+            event.pk,
+            preference.user,
+            ticket_type_id=ticket_type.pk if ticket_type else None,
+        )
+    except Http404:
+        return reply("END", "Published event not found.")
+    except RegistrationError as exc:
+        return reply("END", exc.detail)
+
+    if preference.sms_enabled:
+        message = (
+            f"You're registered for {event.name} on {event.date:%d %b %Y} "
+            f"at {event.start_time:%H:%M}, {event.venue or 'online'}."
+        )
+
+        def confirm():
+            try:
+                send_sms(phone, message)
+            except (SMSServiceError, ValueError):
+                pass  # SMS failure never undoes the registration.
+
+        transaction.on_commit(confirm)
+
+    return reply("END", f"You're registered for {event.name}.")
 
 
 @csrf_exempt
@@ -142,6 +219,9 @@ def ussd_callback(request):
             "END",
             "Staff reporting is being connected. Contact the organizer directly.",
         )
+
+    if parts[0] == "4":
+        return register_event(parts, phone)
 
     if parts[0] == "5":
         return rate_event(parts, phone)
