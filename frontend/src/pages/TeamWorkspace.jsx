@@ -199,8 +199,9 @@ export default function TeamWorkspace({ user, onLogout }) {
         incident.id,
       )
       setNotice(
-        `Called ${result.dialed} team member`
-        + `${result.dialed === 1 ? '' : 's'}.`,
+        result.dialed === 0
+          ? `No team members were reached (${result.failed} failed, ${result.skipped} without a phone number).`
+          : `Called ${result.dialed} team member${result.dialed === 1 ? '' : 's'}. ${result.failed} failed, ${result.skipped} skipped.`,
       )
     } catch (err) {
       setError(err.message)
