@@ -34,6 +34,7 @@ through the Vite dev proxy (see [frontend README](../../frontend/README.md)).
 | Method | Endpoint | Access | Purpose |
 | --- | --- | --- | --- |
 | GET | `/api/events/` | signed in | Events you organize |
+| GET | `/api/events/?scope=lead` | signed in | Events you organize or manage (used by the Communications, Feedback, Payments, Analytics and Budget pages) |
 | POST | `/api/events/` | signed in | Create an event (starts as `draft`) |
 | POST | `/api/events/<event_id>/publish/` | organizer | Publish a draft event |
 | GET | `/api/events/public/` | public | Published events whose date has not passed |
@@ -162,7 +163,7 @@ Statuses: open, in_progress, resolved, closed.
 | GET | `/api/events/<event_id>/feedback/` | organizer or manager | List attendee feedback |
 | POST | `/api/events/<event_id>/feedback/` | confirmed attendee | Submit or update your feedback: `rating` (1–5) and/or `comment`. `201` created, `200` updated |
 | GET | `/api/events/<event_id>/feedback/me/` | signed in | Your own feedback for the event (`404` if none) |
-| GET, POST | `/api/events/<event_id>/feedback/analysis/` | organizer | Fetch, or generate, an AI summary of the feedback |
+| GET, POST | `/api/events/<event_id>/feedback/analysis/` | organizer or manager | Fetch, or generate, an AI summary of the feedback |
 
 When `OPENAI_API_KEY` is missing or the provider fails, the AI endpoints
 return `503`.

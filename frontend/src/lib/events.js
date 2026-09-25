@@ -4,6 +4,11 @@ export function getEvents() {
   return apiRequest('/api/events/')
 }
 
+// Events the user organizes or manages.
+export function getLeadEvents() {
+  return apiRequest('/api/events/?scope=lead')
+}
+
 export function createEvent(event) {
   return apiRequest('/api/events/', {
     method: 'POST',

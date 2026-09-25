@@ -11,6 +11,8 @@ from apps.sms.models import SMSPreference
 from apps.events.models import Event, EventRegistration, TicketType
 
 
+# Tests run without a callback token, whatever backend/.env sets.
+@override_settings(USSD_CALLBACK_TOKEN="")
 class USSDCallbackTests(TestCase):
     def setUp(self):
         self.url = reverse("ussd-callback")
@@ -188,6 +190,7 @@ class USSDCallbackTests(TestCase):
 from apps.events.models import Feedback
 
 
+@override_settings(USSD_CALLBACK_TOKEN="")
 class USSDFeedbackTests(TestCase):
     def setUp(self):
         self.url = reverse("ussd-callback")
@@ -267,7 +270,9 @@ class USSDFeedbackTests(TestCase):
         )
 
 
-@override_settings(FRONTEND_BASE_URL="https://tuviora.test")
+@override_settings(
+    FRONTEND_BASE_URL="https://tuviora.test", USSD_CALLBACK_TOKEN=""
+)
 class USSDRegistrationTests(TestCase):
     def setUp(self):
         self.url = reverse("ussd-callback")

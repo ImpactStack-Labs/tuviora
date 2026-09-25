@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.views import APIView
@@ -28,11 +29,21 @@ class EventListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return (
-            Event.objects
-            .filter(organizer=self.request.user)
-            .select_related("organizer")
-        )
+        user = self.request.user
+        events = Event.objects.filter(organizer=user)
+
+        # ?scope=lead adds events the user manages (organizer pages that
+        # managers may use: communications, feedback, analytics, budget).
+        if self.request.query_params.get("scope") == "lead":
+            events = Event.objects.filter(
+                Q(organizer=user)
+                | Q(
+                    team_memberships__user=user,
+                    team_memberships__role=EventMembership.Role.MANAGER,
+                )
+            ).distinct()
+
+        return events.select_related("organizer")
 
     def perform_create(self, serializer):
         serializer.save(organizer=self.request.user)
@@ -277,11 +288,9 @@ class FeedbackAnalysisView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_event(self):
-        return get_object_or_404(
-            Event,
-            id=self.kwargs["event_id"],
-            organizer=self.request.user,
-        )
+        from .permissions import lead_event_or_deny
+
+        return lead_event_or_deny(self.kwargs["event_id"], self.request.user)
 
     def get(self, request, *args, **kwargs):
         event = self.get_event()
