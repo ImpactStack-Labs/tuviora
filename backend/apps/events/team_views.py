@@ -5,6 +5,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import serializers, status
@@ -12,7 +13,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.sms.services.event_sms_notifications import send_team_sms
+
 from .models import Event, EventInvitation, EventMembership
+from .views import task_access_for_user
 
 
 class InvitationCreateSerializer(serializers.Serializer):
@@ -20,6 +24,10 @@ class InvitationCreateSerializer(serializers.Serializer):
     role = serializers.ChoiceField(
         choices=EventInvitation.Role.choices,
     )
+
+
+class TeamMessageSerializer(serializers.Serializer):
+    message = serializers.CharField(max_length=480, trim_whitespace=True)
 
 
 class EventTeamView(APIView):
@@ -324,3 +332,31 @@ class InvitationAcceptView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class MessageTeamView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, event_id):
+        event = get_object_or_404(Event, pk=event_id)
+        role = task_access_for_user(event, request.user)
+
+        if role is None:
+            raise Http404
+
+        if role not in ("organizer", EventMembership.Role.MANAGER):
+            return Response(
+                {
+                    "detail": (
+                        "Only the organizer or event managers "
+                        "can message the team."
+                    )
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = TeamMessageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        message = serializer.validated_data["message"]
+
+        return Response(send_team_sms(event, message))

@@ -1,3 +1,4 @@
+import TuvioraLogo from '../components/TuvioraLogo'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -9,6 +10,9 @@ import {
   Search,
   Users,
 } from 'lucide-react'
+import { formatEventDate, formatEventTime } from '../lib/format'
+import EmptyState from '../components/EmptyState'
+import LoadingRow from '../components/LoadingRow'
 
 const categoryLabels = {
   conference: 'Conference',
@@ -20,22 +24,6 @@ const categoryLabels = {
   community: 'Community',
   corporate: 'Corporate',
   other: 'Other',
-}
-
-function formatDate(value) {
-  return new Intl.DateTimeFormat('en-UG', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(`${value}T12:00:00Z`))
-}
-
-function formatTime(value) {
-  if (!value) return ''
-  const [hour, minute] = value.split(':').map(Number)
-  const suffix = hour >= 12 ? 'PM' : 'AM'
-  return `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${suffix}`
 }
 
 export default function PublicEvents() {
@@ -102,11 +90,9 @@ export default function PublicEvents() {
 
   return (
     <div className="min-h-screen bg-[#F7F9F5] text-[#1A3F22]">
-      <header className="border-b border-[#E1E8DC] bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5 lg:px-8">
-          <Link to="/" className="text-2xl font-bold tracking-tight">
-            tuviora<span className="text-[#D99201]">.</span>
-          </Link>
+      <header className="sticky top-0 z-40 border-b border-border-soft bg-white/95 backdrop-blur-xl">
+        <div className="tuviora-container flex min-h-20 flex-wrap items-center justify-between gap-3 py-4">
+          <TuvioraLogo />
           <nav className="flex flex-wrap items-center gap-5">
             <Link
               to="/my-registrations"
@@ -126,7 +112,7 @@ export default function PublicEvents() {
       </header>
 
       <main>
-        <section className="bg-[#1A3F22] px-5 py-16 text-white sm:py-20">
+        <section className="bg-[#1A3F22] px-5 py-14 text-white sm:py-20">
           <div className="mx-auto max-w-7xl lg:px-3">
             <p className="text-sm font-bold uppercase tracking-[.18em] text-[#E9B64E]">
               Discover events
@@ -140,8 +126,8 @@ export default function PublicEvents() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-5 py-12 lg:px-8">
-          <div className="mb-9 flex flex-col gap-4 sm:flex-row">
+        <section className="tuviora-container py-10 sm:py-14">
+          <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-border-soft bg-white p-4 shadow-sm sm:flex-row sm:p-5">
             <label className="relative flex-1">
               <span className="sr-only">Search events</span>
               <Search
@@ -152,7 +138,7 @@ export default function PublicEvents() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search events or venues"
-                className="w-full rounded-xl border border-[#DCE5D8] bg-white py-3 pl-12 pr-4 outline-none focus:border-[#58761B]"
+                className="min-h-12 w-full rounded-xl border border-border-soft bg-[#F8F9F5] py-3 pl-12 pr-4 text-base focus:border-[#58761B]"
               />
             </label>
 
@@ -161,7 +147,7 @@ export default function PublicEvents() {
               <select
                 value={category}
                 onChange={(event) => setCategory(event.target.value)}
-                className="w-full rounded-xl border border-[#DCE5D8] bg-white px-4 py-3 outline-none focus:border-[#58761B] sm:w-56"
+                className="min-h-12 w-full rounded-xl border border-border-soft bg-[#F8F9F5] px-4 py-3 text-base focus:border-[#58761B] sm:w-56"
               >
                 <option value="all">All categories</option>
                 {categories.map((item) => (
@@ -174,9 +160,9 @@ export default function PublicEvents() {
           </div>
 
           {loading ? (
-            <p role="status" className="py-20 text-center text-[#647064]">
-              Loading upcoming events...
-            </p>
+            <div className="py-20 text-center">
+              <LoadingRow label="Loading upcoming events..." />
+            </div>
           ) : error ? (
             <div role="alert" className="rounded-2xl border border-red-200 bg-white p-10 text-center">
               <p className="text-red-700">{error}</p>
@@ -188,50 +174,50 @@ export default function PublicEvents() {
               </button>
             </div>
           ) : visibleEvents.length === 0 ? (
-            <div className="rounded-2xl border border-[#E1E8DC] bg-white p-12 text-center">
-              <CalendarDays size={38} className="mx-auto text-[#58761B]" />
-              <h2 className="mt-5 text-2xl font-bold">
-                {events.length ? 'No matching events' : 'No upcoming events yet'}
-              </h2>
-              <p className="mt-3 text-[#647064]">
-                {events.length
+            <EmptyState
+              as="h2"
+              size="lg"
+              icon={CalendarDays}
+              title={events.length ? 'No matching events' : 'No upcoming events yet'}
+              description={
+                events.length
                   ? 'Try a different search or category.'
-                  : 'Check back soon for new events.'}
-              </p>
-            </div>
+                  : 'Check back soon for new events.'
+              }
+            />
           ) : (
             <>
               <p className="mb-6 text-sm font-medium text-[#647064]">
                 {visibleEvents.length} upcoming {visibleEvents.length === 1 ? 'event' : 'events'}
               </p>
-              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid max-w-5xl gap-6 md:grid-cols-2 xl:gap-8">
                 {visibleEvents.map((event) => (
                   <article
                     key={event.id}
-                    className="flex flex-col overflow-hidden rounded-2xl border border-[#E1E8DC] bg-white shadow-sm"
+                    className="tuviora-card tuviora-surface-card flex h-full flex-col overflow-hidden"
                   >
-                    <div className="bg-[#EDF3E8] px-6 py-7">
+                    <div className="min-h-36 border-b border-[#E1E8DC] bg-gradient-to-br from-[#EAF2E6] to-[#F8F9F5] px-6 py-8">
                       <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold text-[#58761B]">
                         {categoryLabels[event.category] || event.category}
                       </span>
-                      <h2 className="mt-5 text-2xl font-bold">
+                      <h2 className="mt-5 text-2xl font-bold leading-tight tracking-tight">
                         {event.name}
                       </h2>
                     </div>
 
                     <div className="flex flex-1 flex-col p-6">
-                      <p className="mb-6 line-clamp-3 text-sm leading-7 text-[#647064]">
+                      <p className="mb-6 line-clamp-3 text-[15px] leading-7 text-[#526052]">
                         {event.description || 'Join us for this upcoming event.'}
                       </p>
 
                       <div className="space-y-3 text-sm text-[#405642]">
                         <p className="flex items-center gap-3">
                           <CalendarDays size={18} className="shrink-0 text-[#58761B]" />
-                          {formatDate(event.date)}
+                          {formatEventDate(event.date)}
                         </p>
                         <p className="flex items-center gap-3">
                           <Clock3 size={18} className="shrink-0 text-[#58761B]" />
-                          {formatTime(event.start_time)} – {formatTime(event.end_time)}
+                          {formatEventTime(event.start_time)} – {formatEventTime(event.end_time)}
                         </p>
                         <p className="flex items-center gap-3">
                           <MapPin size={18} className="shrink-0 text-[#58761B]" />
@@ -247,10 +233,10 @@ export default function PublicEvents() {
                         )}
                       </div>
 
-                      <div className="mt-7 border-t border-[#E1E8DC] pt-5">
+                      <div className="mt-auto border-t border-border-soft pt-5">
                         <Link
                           to={`/events/${event.id}`}
-                          className="flex items-center gap-2 text-sm font-semibold text-[#58761B] hover:underline"
+                          className="tuviora-button-primary w-full text-sm sm:w-auto"
                         >
                           View event and register
                           <ArrowRight size={17} />

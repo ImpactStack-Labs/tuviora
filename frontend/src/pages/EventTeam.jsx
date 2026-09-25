@@ -10,11 +10,14 @@ import {
   XCircle,
 } from 'lucide-react'
 import { getEvents, formatApiError } from '../lib/events'
+import { formatDateTime } from '../lib/format'
+import StatCard from '../components/StatCard'
 import {
   createEventInvitation,
   getEventInvitations,
   getEventTeam,
   revokeEventInvitation,
+  sendTeamMessage,
 } from '../lib/team'
 
 const ROLE_LABELS = {
@@ -30,14 +33,6 @@ function invitationStatus(invitation) {
     return 'Expired'
   }
   return 'Pending'
-}
-
-function formatDate(value) {
-  return new Intl.DateTimeFormat('en-UG', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(value))
 }
 
 export default function EventTeam() {
@@ -56,6 +51,8 @@ export default function EventTeam() {
   const [inviteLink, setInviteLink] = useState('')
   const [copied, setCopied] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [teamMessage, setTeamMessage] = useState('')
+  const [sendingMessage, setSendingMessage] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -168,6 +165,32 @@ export default function EventTeam() {
     }
   }
 
+  async function handleSendTeamMessage(event) {
+    event.preventDefault()
+    if (!selectedEventId || sendingMessage || !teamMessage.trim()) return
+
+    setSendingMessage(true)
+    setError('')
+    setNotice('')
+
+    try {
+      const result = await sendTeamMessage(
+        selectedEventId,
+        teamMessage.trim(),
+      )
+      setTeamMessage('')
+      setNotice(
+        result.submitted === 0
+          ? `No team members were reached (${result.failed} failed, ${result.skipped} without SMS consent or a phone number).`
+          : `Sent to ${result.submitted}. ${result.failed} failed, ${result.skipped} skipped.`,
+      )
+    } catch (err) {
+      setError(formatApiError(err))
+    } finally {
+      setSendingMessage(false)
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -178,7 +201,7 @@ export default function EventTeam() {
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#1A3F22] sm:text-4xl">
             Event Team
           </h1>
-          <p className="mt-3 max-w-2xl text-[#647365]">
+          <p className="mt-3 max-w-2xl text-text-muted">
             Bring your event team together, manage invitations and prepare
             to assign responsibilities.
           </p>
@@ -191,7 +214,7 @@ export default function EventTeam() {
             setRefreshKey((value) => value + 1)
           }}
           disabled={!selectedEventId || loadingTeam}
-          className="inline-flex items-center gap-2 rounded-xl border border-[#DCE5D5] bg-white px-4 py-3 text-sm font-semibold disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-xl border border-border-soft bg-white px-4 py-3 text-sm font-semibold disabled:opacity-50"
         >
           <RefreshCw size={17} /> Refresh
         </button>
@@ -208,9 +231,9 @@ export default function EventTeam() {
         </div>
       )}
 
-      <section className="rounded-2xl border border-[#E2E9DE] bg-white p-5 shadow-sm sm:p-6">
+      <section className="rounded-2xl border border-border-soft bg-white p-5 shadow-sm sm:p-6">
         <label htmlFor="team-event" className="mb-2 block text-sm font-semibold">
-          Select event
+          Select an event
         </label>
         <select
           id="team-event"
@@ -225,7 +248,7 @@ export default function EventTeam() {
             setNotice('')
           }}
           disabled={loadingEvents || !events.length}
-          className="w-full rounded-xl border border-[#DCE5D5] bg-white px-4 py-3 outline-none focus:border-[#58761B] sm:max-w-xl"
+          className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 outline-none focus:border-[#58761B] sm:max-w-xl"
         >
           {!events.length && <option value="">No events available</option>}
           {events.map((event) => (
@@ -235,10 +258,43 @@ export default function EventTeam() {
           ))}
         </select>
         {selectedEvent && (
-          <p className="mt-3 text-sm text-[#647365]">
+          <p className="mt-3 text-sm text-text-muted">
             {selectedEvent.category} · {selectedEvent.date}
           </p>
         )}
+      </section>
+
+      <section className="rounded-2xl border border-border-soft bg-white p-5 shadow-sm sm:p-6">
+        <h2 className="text-lg font-semibold text-[#1A3F22]">
+          Message team
+        </h2>
+        <p className="mt-1 text-sm text-text-muted">
+          Sends an SMS to the organizer and every accepted team member
+          for this event.
+        </p>
+        <form
+          onSubmit={handleSendTeamMessage}
+          className="mt-4 flex flex-col gap-3 sm:flex-row"
+        >
+          <textarea
+            value={teamMessage}
+            onChange={(event) => setTeamMessage(event.target.value)}
+            placeholder="Type a message for the team..."
+            rows={2}
+            maxLength={480}
+            aria-label="Message to team"
+            className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 outline-none focus:border-[#58761B]"
+          />
+          <button
+            type="submit"
+            disabled={
+              !selectedEventId || sendingMessage || !teamMessage.trim()
+            }
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#58761B] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {sendingMessage ? 'Sending...' : 'Send'}
+          </button>
+        </form>
       </section>
 
       {selectedEventId && (
@@ -249,24 +305,25 @@ export default function EventTeam() {
               { label: 'Pending invitations', value: pendingCount, icon: MailPlus },
               { label: 'Event managers', value: members.filter((member) => member.role === 'manager').length, icon: ShieldCheck },
             ].map(({ label, value, icon: Icon }) => (
-              <div key={label} className="rounded-2xl border border-[#E2E9DE] bg-white p-6 shadow-sm">
-                <Icon className="mb-4 text-[#58761B]" size={24} />
-                <p className="text-3xl font-bold">{loadingTeam ? '…' : value}</p>
-                <p className="mt-1 text-sm text-[#647365]">{label}</p>
-              </div>
+              <StatCard
+                key={label}
+                label={label}
+                value={loadingTeam ? '…' : value}
+                icon={Icon}
+              />
             ))}
           </div>
 
           <div className="grid items-start gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-            <section className="rounded-2xl border border-[#E2E9DE] bg-white p-5 shadow-sm sm:p-6">
+            <section className="rounded-2xl border border-border-soft bg-white p-5 shadow-sm sm:p-6">
               <h2 className="text-xl font-bold">Team members</h2>
-              <p className="mt-1 text-sm text-[#647365]">
+              <p className="mt-1 text-sm text-text-muted">
                 Everyone who has joined this event.
               </p>
 
               <div className="mt-6 divide-y divide-[#EDF1EA]">
                 {!loadingTeam && !members.length && (
-                  <p className="py-6 text-sm text-[#647365]">
+                  <p className="py-6 text-sm text-text-muted">
                     No team members found.
                   </p>
                 )}
@@ -277,7 +334,7 @@ export default function EventTeam() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold">{member.username}</p>
-                      <p className="truncate text-sm text-[#647365]">
+                      <p className="truncate text-sm text-text-muted">
                         {member.email || 'No email provided'}
                       </p>
                     </div>
@@ -289,14 +346,14 @@ export default function EventTeam() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-[#E2E9DE] bg-white p-5 shadow-sm sm:p-6">
+            <section className="rounded-2xl border border-border-soft bg-white p-5 shadow-sm sm:p-6">
               <div className="mb-6 flex items-center gap-3">
                 <div className="rounded-xl bg-[#EDF3E8] p-3 text-[#58761B]">
                   <MailPlus size={22} />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold">Invite a teammate</h2>
-                  <p className="text-sm text-[#647365]">
+                  <p className="text-sm text-text-muted">
                     Generate a private invitation link.
                   </p>
                 </div>
@@ -314,7 +371,7 @@ export default function EventTeam() {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="teammate@example.com"
-                    className="w-full rounded-xl border border-[#DCE5D5] px-4 py-3 outline-none focus:border-[#58761B]"
+                    className="w-full rounded-xl border border-border-soft px-4 py-3 outline-none focus:border-[#58761B]"
                   />
                 </div>
                 <div>
@@ -325,7 +382,7 @@ export default function EventTeam() {
                     id="invite-role"
                     value={role}
                     onChange={(event) => setRole(event.target.value)}
-                    className="w-full rounded-xl border border-[#DCE5D5] bg-white px-4 py-3 outline-none focus:border-[#58761B]"
+                    className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 outline-none focus:border-[#58761B]"
                   >
                     <option value="member">Team Member</option>
                     <option value="manager">Event Manager</option>
@@ -341,9 +398,9 @@ export default function EventTeam() {
               </form>
 
               {inviteLink && (
-                <div className="mt-6 rounded-xl border border-[#DCE5D5] bg-[#F7F9F5] p-4">
+                <div className="mt-6 rounded-xl border border-border-soft bg-[#F7F9F5] p-4">
                   <p className="text-sm font-semibold">Your invitation link</p>
-                  <p className="mt-1 text-xs text-[#647365]">
+                  <p className="mt-1 text-xs text-text-muted">
                     Shown only once. Share it privately; it expires after seven days.
                   </p>
                   <input
@@ -351,7 +408,7 @@ export default function EventTeam() {
                     aria-label="Invitation link"
                     value={inviteLink}
                     onFocus={(event) => event.target.select()}
-                    className="mt-3 w-full rounded-lg border border-[#DCE5D5] bg-white p-3 text-xs"
+                    className="mt-3 w-full rounded-lg border border-border-soft bg-white p-3 text-xs"
                   />
                   <button
                     type="button"
@@ -366,15 +423,15 @@ export default function EventTeam() {
             </section>
           </div>
 
-          <section className="rounded-2xl border border-[#E2E9DE] bg-white p-5 shadow-sm sm:p-6">
+          <section className="rounded-2xl border border-border-soft bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-xl font-bold">Invitations</h2>
-            <p className="mt-1 text-sm text-[#647365]">
+            <p className="mt-1 text-sm text-text-muted">
               Track invitations and revoke links that are no longer needed.
             </p>
 
             <div className="mt-6 space-y-3">
               {!loadingTeam && !invitations.length && (
-                <div className="rounded-xl bg-[#F7F9F5] p-8 text-center text-sm text-[#647365]">
+                <div className="rounded-xl bg-[#F7F9F5] p-8 text-center text-sm text-text-muted">
                   No invitations yet. Invite your first teammate above.
                 </div>
               )}
@@ -385,12 +442,12 @@ export default function EventTeam() {
                 return (
                   <div
                     key={invitation.id}
-                    className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#E2E9DE] p-4"
+                    className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border-soft p-4"
                   >
                     <div>
                       <p className="font-semibold">{invitation.email}</p>
-                      <p className="mt-1 text-sm text-[#647365]">
-                        {ROLE_LABELS[invitation.role]} · Expires {formatDate(invitation.expires_at)}
+                      <p className="mt-1 text-sm text-text-muted">
+                        {ROLE_LABELS[invitation.role]} · Expires {formatDateTime(invitation.expires_at)}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">

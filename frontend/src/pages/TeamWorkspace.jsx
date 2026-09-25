@@ -4,10 +4,13 @@ import {
   CheckCircle2,
   ClipboardCheck,
   LogOut,
-  RefreshCw,
   Users,
 } from 'lucide-react'
 import { apiRequest, logoutOrganizer } from '../lib/auth'
+import { callTeamForIncident } from '../lib/team'
+import StatCard from '../components/StatCard'
+import EmptyState from '../components/EmptyState'
+import LoadingRow from '../components/LoadingRow'
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -30,6 +33,14 @@ export default function TeamWorkspace({ user, onLogout }) {
     memberships[0]?.event_id || '',
   )
   const [tasks, setTasks] = useState([])
+  const [incidents, setIncidents] = useState([])
+  const [incidentTitle, setIncidentTitle] = useState('')
+  const [incidentDescription, setIncidentDescription] = useState('')
+  const [incidentCategory, setIncidentCategory] = useState('other')
+  const [incidentSeverity, setIncidentSeverity] = useState('medium')
+  const [submittingIncident, setSubmittingIncident] = useState(false)
+  const [updatingIncidentId, setUpdatingIncidentId] = useState(null)
+  const [callingIncidentId, setCallingIncidentId] = useState(null)
   const [loading, setLoading] = useState(false)
   const [savingTaskId, setSavingTaskId] = useState(null)
   const [error, setError] = useState('')
@@ -48,6 +59,16 @@ export default function TeamWorkspace({ user, onLogout }) {
     setLoading(true)
     setError('')
     setTasks([])
+    setIncidents([])
+
+    apiRequest(`/api/events/${selectedEventId}/incidents/`)
+      .then((data) => {
+        if (!active) return
+        setIncidents(Array.isArray(data) ? data : data.results || [])
+      })
+      .catch((err) => {
+        if (active) setError(err.message)
+      })
 
     apiRequest(`/api/events/${selectedEventId}/tasks/`)
       .then((data) => {
@@ -101,6 +122,94 @@ export default function TeamWorkspace({ user, onLogout }) {
     }
   }
 
+  async function submitIncident(event) {
+    event.preventDefault()
+    if (!selectedEventId || submittingIncident) return
+
+    setSubmittingIncident(true)
+    setError('')
+    setNotice('')
+
+    try {
+      const created = await apiRequest(
+        `/api/events/${selectedEventId}/incidents/`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            title: incidentTitle.trim(),
+            description: incidentDescription.trim(),
+            category: incidentCategory,
+            severity: incidentSeverity,
+          }),
+        },
+      )
+
+      setIncidents((current) => [created, ...current])
+      setIncidentTitle('')
+      setIncidentDescription('')
+      setIncidentCategory('other')
+      setIncidentSeverity('medium')
+      setNotice('Incident reported successfully.')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSubmittingIncident(false)
+    }
+  }
+
+  async function updateIncidentStatus(incident, status) {
+    if (updatingIncidentId !== null) return
+
+    setUpdatingIncidentId(incident.id)
+    setError('')
+    setNotice('')
+
+    try {
+      const updated = await apiRequest(
+        `/api/events/${selectedEventId}/incidents/${incident.id}/`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ status }),
+        },
+      )
+
+      setIncidents((current) =>
+        current.map((item) =>
+          item.id === updated.id ? updated : item,
+        ),
+      )
+      setNotice('Incident status updated.')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setUpdatingIncidentId(null)
+    }
+  }
+
+  async function handleCallTeam(incident) {
+    if (callingIncidentId !== null) return
+
+    setCallingIncidentId(incident.id)
+    setError('')
+    setNotice('')
+
+    try {
+      const result = await callTeamForIncident(
+        selectedEventId,
+        incident.id,
+      )
+      setNotice(
+        result.dialed === 0
+          ? `No team members were reached (${result.failed} failed, ${result.skipped} without a phone number).`
+          : `Called ${result.dialed} team member${result.dialed === 1 ? '' : 's'}. ${result.failed} failed, ${result.skipped} skipped.`,
+      )
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setCallingIncidentId(null)
+    }
+  }
+
   async function handleLogout() {
     try {
       await logoutOrganizer()
@@ -112,13 +221,13 @@ export default function TeamWorkspace({ user, onLogout }) {
 
   return (
     <div className="min-h-screen bg-[#F7F9F5] text-[#1A3F22]">
-      <header className="border-b border-[#E3E9DF] bg-white">
+      <header className="border-b border-border-soft bg-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-[#58761B]">
               Tuviora
             </p>
-            <h1 className="mt-1 text-2xl font-bold">
+            <h1 className="mt-1 text-3xl font-bold">
               Team Workspace
             </h1>
             <p className="mt-1 text-sm text-[#647064]">
@@ -129,7 +238,7 @@ export default function TeamWorkspace({ user, onLogout }) {
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#DDE6D6] px-4 py-2 text-sm font-semibold hover:bg-[#F0F5E9]"
+            className="inline-flex items-center gap-2 rounded-xl border border-border-soft px-4 py-2 text-sm font-semibold hover:bg-[#F0F5E9]"
           >
             <LogOut size={17} />
             Sign out
@@ -149,7 +258,7 @@ export default function TeamWorkspace({ user, onLogout }) {
         </div>
 
         {memberships.length > 0 && (
-          <section className="mb-7 rounded-2xl border border-[#E3E9DF] bg-white p-5">
+          <section className="mb-7 rounded-2xl border border-border-soft bg-white p-5">
             <label
               htmlFor="team-event"
               className="mb-2 block text-sm font-semibold"
@@ -163,7 +272,7 @@ export default function TeamWorkspace({ user, onLogout }) {
               onChange={(event) =>
                 setSelectedEventId(event.target.value)
               }
-              className="w-full rounded-xl border border-[#DDE6D6] bg-white px-4 py-3 sm:max-w-md"
+              className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 sm:max-w-md"
             >
               {memberships.map((membership) => (
                 <option
@@ -208,16 +317,7 @@ export default function TeamWorkspace({ user, onLogout }) {
               Icon: CheckCircle2,
             },
           ].map(({ label, value, Icon }) => (
-            <div
-              key={label}
-              className="rounded-2xl border border-[#E3E9DF] bg-white p-5"
-            >
-              <Icon size={23} className="text-[#58761B]" />
-              <p className="mt-4 text-3xl font-bold">{value}</p>
-              <p className="mt-1 text-sm text-[#647064]">
-                {label}
-              </p>
-            </div>
+            <StatCard key={label} label={label} value={value} icon={Icon} />
           ))}
         </div>
 
@@ -241,30 +341,19 @@ export default function TeamWorkspace({ user, onLogout }) {
           </h2>
 
           {loading ? (
-            <p className="flex items-center gap-2 text-[#647064]">
-              <RefreshCw size={18} className="animate-spin" />
-              Loading tasks...
-            </p>
+            <LoadingRow label="Loading tasks..." />
           ) : tasks.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-[#CCD8C4] bg-white p-10 text-center">
-              <ClipboardCheck
-                size={36}
-                className="mx-auto text-[#58761B]"
-              />
-              <h3 className="mt-4 font-bold">
-                No tasks to display yet
-              </h3>
-              <p className="mt-2 text-sm text-[#647064]">
-                Tasks will appear here when your organizer
-                assigns them to you.
-              </p>
-            </div>
+            <EmptyState
+              icon={ClipboardCheck}
+              title="No tasks to display yet"
+              description="Tasks will appear here when your organizer assigns them to you."
+            />
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {tasks.map((task) => (
                 <article
                   key={task.id}
-                  className="rounded-2xl border border-[#E3E9DF] bg-white p-5 shadow-sm"
+                  className="rounded-2xl border border-border-soft bg-white p-5 shadow-sm"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <h3 className="font-bold">{task.title}</h3>
@@ -300,7 +389,7 @@ export default function TeamWorkspace({ user, onLogout }) {
                           className={`rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-60 ${
                             task.status === value
                               ? 'bg-[#1A3F22] text-white'
-                              : 'border border-[#DDE6D6] hover:bg-[#F0F5E9]'
+                              : 'border border-border-soft hover:bg-[#F0F5E9]'
                           }`}
                         >
                           {label}
@@ -308,6 +397,176 @@ export default function TeamWorkspace({ user, onLogout }) {
                       ),
                     )}
                   </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="mt-10 rounded-2xl border border-[#E3E9DF] bg-white p-6">
+          <h2 className="text-2xl font-bold">
+            Report Incident / Request Help
+          </h2>
+          <p className="mt-2 text-sm text-[#647064]">
+            Tell your organizer about a problem affecting this event.
+          </p>
+
+          <form
+            onSubmit={submitIncident}
+            className="mt-6 grid gap-4"
+          >
+            <label className="grid gap-2 text-sm font-semibold">
+              What happened?
+              <input
+                required
+                maxLength={255}
+                value={incidentTitle}
+                onChange={(event) =>
+                  setIncidentTitle(event.target.value)
+                }
+                placeholder="e.g. Registration desk needs assistance"
+                className="rounded-xl border border-[#DDE6D6] p-3"
+              />
+            </label>
+
+            <label className="grid gap-2 text-sm font-semibold">
+              Description
+              <textarea
+                required
+                rows={4}
+                value={incidentDescription}
+                onChange={(event) =>
+                  setIncidentDescription(event.target.value)
+                }
+                placeholder="Describe the problem and the help needed."
+                className="rounded-xl border border-[#DDE6D6] p-3"
+              />
+            </label>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-2 text-sm font-semibold">
+                Category
+                <select
+                  value={incidentCategory}
+                  onChange={(event) =>
+                    setIncidentCategory(event.target.value)
+                  }
+                  className="rounded-xl border border-[#DDE6D6] p-3"
+                >
+                  {[
+                    'network', 'power', 'venue', 'security',
+                    'attendance', 'payment', 'technical', 'other',
+                  ].map((category) => (
+                    <option key={category} value={category}>
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-2 text-sm font-semibold">
+                Urgency
+                <select
+                  value={incidentSeverity}
+                  onChange={(event) =>
+                    setIncidentSeverity(event.target.value)
+                  }
+                  className="rounded-xl border border-[#DDE6D6] p-3"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              disabled={!selectedEventId || submittingIncident}
+              className="rounded-xl bg-[#1A3F22] px-5 py-3 font-semibold text-white disabled:opacity-50 sm:justify-self-start"
+            >
+              {submittingIncident ? 'Submitting...' : 'Submit report'}
+            </button>
+          </form>
+        </section>
+
+        <section className="mt-10">
+          <h2 className="mb-5 text-2xl font-bold">
+            Event incident reports
+          </h2>
+
+          {incidents.length === 0 ? (
+            <p className="rounded-xl border border-[#E3E9DF] bg-white p-5 text-sm text-[#647064]">
+              No incident reports for this event yet.
+            </p>
+          ) : (
+            <div className="grid gap-4">
+              {incidents.map((incident) => (
+                <article
+                  key={incident.id}
+                  className="rounded-xl border border-[#E3E9DF] bg-white p-5"
+                >
+                  <div className="flex flex-wrap justify-between gap-3">
+                    <h3 className="font-bold">{incident
+
+
+.title}</h3>
+                    <span className="text-sm font-semibold">
+                      {incident.status.replaceAll('_', ' ')}
+                    </span>
+                  </div>
+
+                  <p className="mt-3 text-sm text-[#647064]">
+                    {incident.description}
+                  </p>
+
+                  <p className="mt-3 text-xs text-[#647064]">
+                    {incident.category} · {incident.severity} urgency
+                  </p>
+
+                  {selectedMembership?.role === 'manager' && (
+                    <>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {[
+                          ['open', 'Open'],
+                          ['in_progress', 'In progress'],
+                          ['resolved', 'Resolved'],
+                          ['closed', 'Closed'],
+                        ].map(([value, label]) => (
+                          <button
+                            key={value}
+                            type="button"
+                            disabled={
+                              updatingIncidentId !== null ||
+                              incident.status === value
+                            }
+                            onClick={() =>
+                              updateIncidentStatus(incident, value)
+                            }
+                            className="rounded-lg border border-[#DDE6D6] px-3 py-2 text-sm font-semibold disabled:opacity-50"
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {incident.severity === 'critical' && (
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            disabled={callingIncidentId !== null}
+                            onClick={() => handleCallTeam(incident)}
+                            className="rounded-lg bg-[#B42318] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                          >
+                            {callingIncidentId === incident.id
+                              ? 'Calling...'
+                              : 'Call the team'}
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </article>
               ))}
             </div>

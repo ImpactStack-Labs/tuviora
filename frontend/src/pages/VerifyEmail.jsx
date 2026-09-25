@@ -1,3 +1,4 @@
+import TuvioraLogo from '../components/TuvioraLogo'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarDays, CheckCircle2, MailCheck } from 'lucide-react'
@@ -72,15 +73,9 @@ export default function VerifyEmail() {
   return (
     <main className="min-h-screen bg-[#F7F9F5] px-5 py-12 text-[#1A3F22]">
       <div className="mx-auto max-w-lg">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-xl font-bold"
-        >
-          <CalendarDays size={25} className="text-[#58761B]" />
-          tuviora<span className="text-[#D99201]">.</span>
-        </Link>
+        <TuvioraLogo />
 
-        <section className="mt-10 rounded-3xl border border-[#E2E9DE] bg-white p-8 shadow-sm sm:p-10">
+        <section className="mt-10 rounded-3xl border border-border-soft bg-white p-8 shadow-sm sm:p-10">
           <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#EDF3E8] text-[#58761B]">
             {status === 'verified'
               ? <CheckCircle2 size={30} />
@@ -95,7 +90,7 @@ export default function VerifyEmail() {
 
           {status === 'verified' ? (
             <>
-              <p className="mt-4 leading-7 text-[#647365]">
+              <p className="mt-4 leading-7 text-text-muted">
                 Your Tuviora account is now active.
                 Continue to your invitation or sign in to your account.
               </p>
@@ -111,7 +106,7 @@ export default function VerifyEmail() {
             </>
           ) : (
             <>
-              <p className="mt-4 leading-7 text-[#647365]">
+              <p className="mt-4 leading-7 text-text-muted">
                 {status === 'missing'
                   ? 'This verification link is missing its token.'
                   : status === 'working'

@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'apps.events',
     'apps.accounts.apps.AccountsConfig',
+    'apps.sms.apps.SMSConfig',
 ]
 
 MIDDLEWARE = [
@@ -206,6 +207,19 @@ AFRICASTALKING_SENDER_ID = os.getenv(
     "AFRICASTALKING_SENDER_ID", ""
 )
 
+# MarzPay payment collection (https://wallet.wearemarz.com)
+MARZPAY_BASE_URL = os.getenv(
+    "MARZPAY_BASE_URL", "https://wallet.wearemarz.com/api/v1"
+).strip()
+MARZPAY_API_KEY = os.getenv("MARZPAY_API_KEY", "").strip()
+MARZPAY_API_SECRET = os.getenv("MARZPAY_API_SECRET", "").strip()
+MARZPAY_WEBHOOK_SECRET = os.getenv(
+    "MARZPAY_WEBHOOK_SECRET", ""
+).strip()
+MARZPAY_CALLBACK_URL = os.getenv("MARZPAY_CALLBACK_URL", "").strip()
+MARZPAY_DEFAULT_COUNTRY = os.getenv(
+    "MARZPAY_DEFAULT_COUNTRY", "UG"
+).strip()
 
 # Africa's Talking Voice
 AT_VOICE_NUMBER = os.getenv("AT_VOICE_NUMBER", "").strip()
@@ -235,4 +249,10 @@ VOICE_CONFERENCE_ENABLED = (
 
 VOICE_CONFERENCE_MAX_PARTICIPANTS = int(
     os.getenv("VOICE_CONFERENCE_MAX_PARTICIPANTS", "20")
+)
+
+# Critical-incident voice call escalation (organizer + managers only)
+VOICE_CRITICAL_CALLS_ENABLED = (
+    os.getenv("VOICE_CRITICAL_CALLS_ENABLED", "false").lower()
+    == "true"
 )

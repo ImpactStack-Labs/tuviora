@@ -13,18 +13,8 @@ import {
   getEventRegistrations,
   getEvents,
 } from '../lib/events'
-
-function SummaryCard({ label, value, icon: Icon }) {
-  return (
-    <div className="rounded-2xl border border-[#E3E9DF] bg-white p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <span className="text-sm text-[#718072]">{label}</span>
-        <Icon size={20} className="text-[#58761B]" />
-      </div>
-      <p className="text-3xl font-bold text-[#1A3F22]">{value}</p>
-    </div>
-  )
-}
+import StatCard from '../components/StatCard'
+import LoadingRow from '../components/LoadingRow'
 
 export default function EventRegistrations() {
   const [events, setEvents] = useState([])
@@ -138,7 +128,7 @@ export default function EventRegistrations() {
         </p>
       </header>
 
-      <section className="rounded-2xl border border-[#E3E9DF] bg-white p-5">
+      <section className="rounded-2xl border border-border-soft bg-white p-5">
         <label
           htmlFor="registration-event"
           className="mb-2 block text-sm font-semibold text-[#1A3F22]"
@@ -154,7 +144,7 @@ export default function EventRegistrations() {
             setFilter('all')
           }}
           disabled={loadingEvents || !events.length}
-          className="w-full rounded-xl border border-[#D5DFD0] bg-white px-4 py-3 text-[#1A3F22] focus:border-[#58761B] focus:outline-none sm:max-w-xl"
+          className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 text-[#1A3F22] focus:border-[#58761B] focus:outline-none sm:max-w-xl"
         >
           {!events.length && (
             <option value="">
@@ -186,30 +176,30 @@ export default function EventRegistrations() {
       )}
 
       <section className="grid gap-4 sm:grid-cols-4">
-        <SummaryCard
+        <StatCard
           label="Total registrations"
           value={loadingRegistrations || registrationError ? '—' : counts.total}
           icon={Users}
         />
-        <SummaryCard
+        <StatCard
           label="Confirmed"
           value={loadingRegistrations || registrationError ? '—' : counts.confirmed}
           icon={CheckCircle2}
         />
-        <SummaryCard
+        <StatCard
           label="Payment pending"
           value={loadingRegistrations || registrationError ? '—' : counts.pending}
           icon={Users}
         />
-        <SummaryCard
+        <StatCard
           label="Cancelled"
           value={loadingRegistrations || registrationError ? '—' : counts.cancelled}
           icon={XCircle}
         />
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-[#E3E9DF] bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E3E9DF] p-5">
+      <section className="overflow-hidden rounded-2xl border border-border-soft bg-white">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border-soft p-5">
           <div>
             <h2 className="text-xl font-bold text-[#1A3F22]">
               Attendees
@@ -222,7 +212,7 @@ export default function EventRegistrations() {
             type="button"
             onClick={() => setRefreshKey((value) => value + 1)}
             disabled={!selectedEventId || loadingRegistrations}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#D5DFD0] px-4 py-2 text-sm font-semibold text-[#1A3F22] hover:bg-[#F7F9F5] disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-border-soft px-4 py-2 text-sm font-semibold text-[#1A3F22] hover:bg-[#F7F9F5] disabled:opacity-50"
           >
             <RefreshCw size={16} />
             Refresh
@@ -239,13 +229,15 @@ export default function EventRegistrations() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search by attendee ID"
-              className="w-full rounded-xl border border-[#D5DFD0] py-3 pl-10 pr-4 text-sm focus:border-[#58761B] focus:outline-none"
+              aria-label="Search by attendee ID"
+              className="w-full rounded-xl border border-border-soft py-3 pl-10 pr-4 text-sm focus:border-[#58761B] focus:outline-none"
             />
           </div>
           <select
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
-            className="rounded-xl border border-[#D5DFD0] bg-white px-4 py-3 text-sm text-[#1A3F22]"
+            aria-label="Filter by status"
+            className="rounded-xl border border-border-soft bg-white px-4 py-3 text-sm text-[#1A3F22]"
           >
             <option value="all">All statuses</option>
             <option value="confirmed">Confirmed</option>
@@ -255,9 +247,9 @@ export default function EventRegistrations() {
         </div>
 
         {loadingEvents || loadingRegistrations ? (
-          <p className="p-10 text-center text-[#718072]">
-            Loading registrations...
-          </p>
+          <div className="p-10 text-center">
+            <LoadingRow label="Loading registrations..." />
+          </div>
         ) : registrationError ? (
           <p role="status" className="p-10 text-center text-[#718072]">
             Unable to load registrations. Please try refreshing.

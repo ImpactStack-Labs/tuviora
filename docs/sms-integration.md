@@ -23,7 +23,7 @@ commits. SMS failure does not cancel account registration.
 
 ## Reusable SMS service
 
-Import send_sms from apps.events.services.sms_service.
+Import send_sms from apps.sms.services.sms_service.
 
 The service validates phone numbers and messages, checks
 configuration, and handles provider submission responses.
@@ -32,8 +32,8 @@ Provider acceptance does not guarantee final SMS delivery.
 
 ## Consent-aware event notifications
 
-Import send_event_sms from
-apps.events.services.event_sms_notifications.
+Import send_attendee_sms from
+apps.sms.services.event_sms_notifications.
 
 Supply explicit recipient user IDs and a message.
 
@@ -42,6 +42,11 @@ number are eligible.
 
 The caller must verify event participation and organizer
 approval before sending.
+
+Import send_team_sms from the same module to message an
+event's organizer and every accepted team member. Supply
+the event and a message; it resolves recipients from
+EventMembership internally, so callers do not pass user IDs.
 
 ## Sandbox testing
 

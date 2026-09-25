@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { logoutOrganizer } from '../lib/auth'
 import { Route, Routes } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import ApiStatus from '../components/ApiStatus'
@@ -11,14 +12,41 @@ import CreateEvent from '../pages/CreateEvent'
 import EventReadiness from '../pages/EventReadiness'
 import EventTeam from '../pages/EventTeam'
 import EventRegistrations from '../pages/EventRegistrations'
+import EventAttendance from '../pages/EventAttendance'
+import LiveOperations from '../pages/LiveOperations'
+import IncidentManagement from '../pages/IncidentManagement'
 
-export default function OrganizerLayout() {
+export default function OrganizerLayout({ user, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
+  const [logoutError, setLogoutError] = useState('')
+
+  async function handleLogout() {
+    if (signingOut) return
+
+    setSigningOut(true)
+    setLogoutError('')
+
+    try {
+      await logoutOrganizer()
+      onLogout()
+    } catch (err) {
+      setLogoutError(
+        err.message || 'Unable to sign out. Please try again.',
+      )
+    } finally {
+      setSigningOut(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#F7F9F5] text-[#1A3F22]">
       <aside className="fixed inset-y-0 left-0 hidden w-64 overflow-y-auto lg:block">
-        <Sidebar />
+        <Sidebar
+          user={user}
+          onLogout={handleLogout}
+          signingOut={signingOut}
+        />
       </aside>
 
       {menuOpen && (
@@ -38,13 +66,18 @@ export default function OrganizerLayout() {
             >
               <X size={24} />
             </button>
-            <Sidebar closeMenu={() => setMenuOpen(false)} />
+            <Sidebar
+              closeMenu={() => setMenuOpen(false)}
+              user={user}
+              onLogout={handleLogout}
+              signingOut={signingOut}
+            />
           </aside>
         </div>
       )}
 
       <div className="lg:pl-64">
-        <header className="flex h-20 items-center justify-between border-b border-[#E3E9DF] bg-white px-5 sm:px-8">
+        <header className="flex min-h-20 flex-wrap items-center justify-between gap-3 border-b border-border-soft bg-white px-5 py-3 sm:px-8">
           <div className="flex items-center gap-4">
             <button
               type="button"
@@ -54,19 +87,25 @@ export default function OrganizerLayout() {
             >
               <Menu size={25} />
             </button>
-            <div>
-              <p className="text-xs text-[#718072]">ImpactStack Labs</p>
-              <p className="font-bold">Organizer Workspace</p>
-            </div>
+            <p className="font-bold">Organizer Workspace</p>
           </div>
 
           <div className="flex items-center gap-2">
             <ApiStatus />
-            <span className="rounded-full bg-[#EDF3E8] px-4 py-2 text-xs font-semibold text-[#58761B]">
-            Foundation Preview
-          </span>
+            <span className="hidden rounded-full bg-[#EDF3E8] px-4 py-2 text-xs font-semibold text-[#58761B] sm:inline-flex">
+              Organizer workspace
+            </span>
           </div>
         </header>
+
+        {logoutError && (
+          <div
+            role="alert"
+            className="mx-auto mt-5 max-w-[1500px] rounded-lg bg-red-50 px-5 py-3 text-sm text-red-700"
+          >
+            {logoutError}
+          </div>
+        )}
 
         <main className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8">
           <Routes>
@@ -76,7 +115,10 @@ export default function OrganizerLayout() {
             <Route path="readiness" element={<EventReadiness />} />
             <Route path="team" element={<EventTeam />} />
             <Route path="registration" element={<EventRegistrations />} />
-            {navigation.slice(1).filter(({ path }) => path !== 'events' && path !== 'readiness' && path !== 'team' && path !== 'registration').map(({ name, path }) => (
+            <Route path="attendance" element={<EventAttendance />} />
+            <Route path="live" element={<LiveOperations />} />
+            <Route path="incidents" element={<IncidentManagement />} />
+            {navigation.slice(1).filter(({ path }) => path !== 'events' && path !== 'readiness' && path !== 'team' && path !== 'registration' && path !== 'attendance' && path !== 'live' && path !== 'incidents').map(({ name, path }) => (
               <Route
                 key={path}
                 path={path}

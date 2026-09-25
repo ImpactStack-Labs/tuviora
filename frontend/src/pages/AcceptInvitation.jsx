@@ -1,3 +1,4 @@
+import TuvioraLogo from '../components/TuvioraLogo'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -112,15 +113,9 @@ export default function AcceptInvitation() {
   return (
     <div className="min-h-screen bg-[#F7F9F5] px-5 py-12 text-[#1A3F22]">
       <div className="mx-auto max-w-lg">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-xl font-bold"
-        >
-          <CalendarDays size={25} className="text-[#58761B]" />
-          tuviora<span className="text-[#D99201]">.</span>
-        </Link>
+        <TuvioraLogo />
 
-        <div className="mt-10 rounded-3xl border border-[#E2E9DE] bg-white p-7 shadow-sm sm:p-10">
+        <div className="mt-10 rounded-3xl border border-border-soft bg-white p-7 shadow-sm sm:p-10">
           <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#EDF3E8] text-[#58761B]">
             {accepted ? <CheckCircle2 size={30} /> : <Users size={30} />}
           </div>
@@ -134,22 +129,22 @@ export default function AcceptInvitation() {
               <h1 className="mt-2 text-3xl font-bold">
                 Welcome to the team!
               </h1>
-              <p className="mt-4 text-[#647365]">
+              <p className="mt-4 text-text-muted">
                 You've successfully joined the event.
               </p>
 
               <div className="mt-7 rounded-2xl bg-[#F7F9F5] p-5">
-                <p className="text-sm text-[#647365]">Your event</p>
+                <p className="text-sm text-text-muted">Your event</p>
                 <p className="mt-1 text-xl font-bold">
                   {accepted.event_name}
                 </p>
-                <p className="mt-4 text-sm text-[#647365]">Your role</p>
+                <p className="mt-4 text-sm text-text-muted">Your role</p>
                 <p className="mt-1 font-semibold text-[#58761B]">
                   {ROLE_LABELS[accepted.role] || accepted.role}
                 </p>
               </div>
 
-              <p className="mt-5 text-sm text-[#647365]">
+              <p className="mt-5 text-sm text-text-muted">
                 Your organizer can now see you in the event team.
                 Your task workspace will be available once task
                 assignment is connected.
@@ -167,7 +162,7 @@ export default function AcceptInvitation() {
               <h1 className="mt-2 text-3xl font-bold">
                 Join your event team
               </h1>
-              <p className="mt-3 text-[#647365]">
+              <p className="mt-3 text-text-muted">
                 Sign in with the account matching your invitation,
                 then accept your event role.
               </p>
@@ -186,8 +181,8 @@ export default function AcceptInvitation() {
               )}
 
               {checking ? (
-                <p className="mt-7 text-sm text-[#647365]">
-                  Checking your session…
+                <p className="mt-7 text-sm text-text-muted">
+                  Checking your session...
                 </p>
               ) : !user ? (
                 <form onSubmit={handleSignIn} className="mt-7 space-y-5">
@@ -201,7 +196,7 @@ export default function AcceptInvitation() {
                       required
                       value={username}
                       onChange={(event) => setUsername(event.target.value)}
-                      className="mt-2 w-full rounded-xl border border-[#DCE5D8] px-4 py-3 outline-none focus:border-[#58761B]"
+                      className="mt-2 w-full rounded-xl border border-border-soft px-4 py-3 outline-none focus:border-[#58761B]"
                     />
                   </div>
 
@@ -221,7 +216,7 @@ export default function AcceptInvitation() {
                         required
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
-                        className="w-full rounded-xl border border-[#DCE5D8] py-3 pl-12 pr-4 outline-none focus:border-[#58761B]"
+                        className="w-full rounded-xl border border-border-soft py-3 pl-12 pr-4 outline-none focus:border-[#58761B]"
                       />
                     </div>
                   </div>
@@ -232,9 +227,9 @@ export default function AcceptInvitation() {
                     className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1A3F22] px-5 py-3.5 font-semibold text-white disabled:opacity-50"
                   >
                     <LogIn size={18} />
-                    {working ? 'Signing in…' : 'Sign in'}
+                    {working ? 'Signing in...' : 'Sign in'}
                   </button>
-                  <p className="text-center text-sm text-[#647365]">
+                  <p className="text-center text-sm text-text-muted">
                     Don't have an account?{' '}
                     <Link to="/signup" className="font-semibold text-[#58761B] hover:underline">
                       Create account
@@ -243,11 +238,11 @@ export default function AcceptInvitation() {
                 </form>
               ) : (
                 <div className="mt-7 space-y-5">
-                  <div className="rounded-xl border border-[#DCE5D8] bg-[#F7F9F5] p-4">
+                  <div className="rounded-xl border border-border-soft bg-[#F7F9F5] p-4">
                     <div className="flex items-center gap-3">
                       <ShieldCheck size={23} className="text-[#58761B]" />
                       <div>
-                        <p className="text-sm text-[#647365]">
+                        <p className="text-sm text-text-muted">
                           Signed in as
                         </p>
                         <p className="font-semibold">{user.username}</p>
@@ -265,7 +260,7 @@ export default function AcceptInvitation() {
                     {working ? 'Joining event…' : 'Accept invitation'}
                   </button>
 
-                  <p className="text-center text-xs text-[#647365]">
+                  <p className="text-center text-xs text-text-muted">
                     Signed in with the wrong account?
                     Open the organizer workspace to sign out,
                     then return using your invitation link.

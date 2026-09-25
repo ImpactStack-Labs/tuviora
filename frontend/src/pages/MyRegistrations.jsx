@@ -1,3 +1,4 @@
+import TuvioraLogo from '../components/TuvioraLogo'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, CalendarDays, MapPin, Ticket, Users } from 'lucide-react'
@@ -6,15 +7,8 @@ import {
   cancelMyEventRegistration,
   getMyRegistrations,
 } from '../lib/events'
-
-function formatDate(value) {
-  return new Intl.DateTimeFormat('en-UG', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(`${value}T12:00:00Z`))
-}
+import { formatEventDate } from '../lib/format'
+import LoadingRow from '../components/LoadingRow'
 
 function isPastEvent(event) {
   const today = new Intl.DateTimeFormat('en-CA', {
@@ -106,7 +100,7 @@ export default function MyRegistrations() {
     return (
       <article
         key={item.id}
-        className="rounded-2xl border border-[#E1E8DC] bg-white p-6 shadow-sm"
+        className="rounded-2xl border border-border-soft bg-white p-6 shadow-sm"
       >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -127,7 +121,7 @@ export default function MyRegistrations() {
         <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm text-[#647064]">
           <span className="inline-flex items-center gap-2">
             <CalendarDays size={17} />
-            {formatDate(item.event.date)}
+            {formatEventDate(item.event.date)}
           </span>
           <span className="inline-flex items-center gap-2">
             <MapPin size={17} />
@@ -163,11 +157,9 @@ export default function MyRegistrations() {
 
   return (
     <main className="min-h-screen bg-[#F7F9F5] text-[#1A3F22]">
-      <header className="border-b border-[#E1E8DC] bg-white px-5 py-5">
+      <header className="border-b border-border-soft bg-white px-5 py-5">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
-          <Link to="/" className="text-2xl font-bold">
-            tuviora<span className="text-[#D99201]">.</span>
-          </Link>
+          <TuvioraLogo />
           <Link
             to="/events"
             className="inline-flex items-center gap-2 text-sm font-semibold text-[#58761B]"
@@ -183,7 +175,7 @@ export default function MyRegistrations() {
           <p className="text-sm font-bold uppercase tracking-widest text-[#58761B]">
             Attendee dashboard
           </p>
-          <h1 className="mt-3 text-4xl font-bold">My Registrations</h1>
+          <h1 className="mt-3 text-3xl font-bold sm:text-4xl">My Registrations</h1>
           <p className="mt-4 text-[#647064]">
             {user
               ? `Welcome, ${user.first_name || user.username}. Manage your events in one place.`
@@ -192,7 +184,7 @@ export default function MyRegistrations() {
         </div>
 
         {loading ? (
-          <p role="status">Loading your registrations...</p>
+          <LoadingRow label="Loading your registrations..." />
         ) : error ? (
           <div role="alert" className="rounded-2xl bg-white p-7">
             <p className="text-red-700">{error}</p>
@@ -231,7 +223,7 @@ export default function MyRegistrations() {
                   {upcoming.map(registrationCard)}
                 </div>
               ) : (
-                <div className="rounded-2xl border border-[#E1E8DC] bg-white p-8">
+                <div className="rounded-2xl border border-border-soft bg-white p-8">
                   <p className="text-[#647064]">You have no upcoming registrations.</p>
                   <Link
                     to="/events"

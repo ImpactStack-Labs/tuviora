@@ -11,6 +11,11 @@ export function createEvent(event) {
   })
 }
 
+function humanizeField(field) {
+  if (field === 'non_field_errors' || field === 'detail') return ''
+  return field.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase())
+}
+
 export function formatApiError(error) {
   if (error.status === 401 || error.status === 403) {
     return 'Your session has expired. Please sign in again.'
@@ -23,7 +28,8 @@ export function formatApiError(error) {
           ? messages.join(', ')
           : String(messages)
 
-        return `${field}: ${text}`
+        const label = humanizeField(field)
+        return label ? `${label}: ${text}` : text
       })
       .join(' | ')
   }
@@ -50,6 +56,16 @@ export function registerForEvent(eventId, ticketTypeId) {
   })
 }
 
+export function initiateRegistrationPayment(eventId, { method, phoneNumber }) {
+  return apiRequest(`/api/events/${eventId}/registrations/me/pay/`, {
+    method: 'POST',
+    body: JSON.stringify({
+      method,
+      ...(phoneNumber ? { phone_number: phoneNumber } : {}),
+    }),
+  })
+}
+
 export function getMyEventRegistration(eventId) {
   return apiRequest(`/api/events/${eventId}/registrations/me/`)
 }
@@ -73,5 +89,17 @@ export function createTicketType(eventId, ticketType) {
   return apiRequest(`/api/events/${eventId}/ticket-types/`, {
     method: 'POST',
     body: JSON.stringify(ticketType),
+  })
+}
+
+
+export function getMyRegistrationTicket(eventId) {
+  return apiRequest(`/api/events/${eventId}/registrations/me/ticket/`)
+}
+
+export function checkInEventTicket(eventId, token) {
+  return apiRequest(`/api/events/${eventId}/tickets/check-in/`, {
+    method: 'POST',
+    body: JSON.stringify({ token }),
   })
 }

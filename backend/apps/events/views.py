@@ -172,10 +172,9 @@ class EventIncidentListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_event(self):
-        return get_object_or_404(
-            Event,
-            id=self.kwargs["event_id"],
-            organizer=self.request.user,
+        return accessible_task_event(
+            self.kwargs["event_id"],
+            self.request.user,
         )
 
     def get_queryset(self):
@@ -191,20 +190,44 @@ class EventIncidentListCreateView(generics.ListCreateAPIView):
         serializer.save(
             event=self.get_event(),
             reported_by=self.request.user,
+            status=Incident.Status.OPEN,
         )
 
 
 class EventIncidentDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = IncidentSerializer
     permission_classes = [IsAuthenticated]
+    http_method_names = ["get", "patch", "head", "options"]
 
     def get_queryset(self):
+        event = accessible_task_event(
+            self.kwargs["event_id"],
+            self.request.user,
+        )
+
         return (
             Incident.objects
-            .filter(event__id=self.kwargs["event_id"])
-            .filter(event__organizer=self.request.user)
+            .filter(event=event)
             .select_related("event", "reported_by")
         )
+
+    def partial_update(self, request, *args, **kwargs):
+        incident = self.get_object()
+        role = task_access_for_user(
+            incident.event,
+            request.user,
+        )
+
+        if role not in {
+            "organizer",
+            EventMembership.Role.MANAGER,
+        }:
+            raise PermissionDenied(
+                "Only the organizer or event manager "
+                "can update incidents."
+            )
+
+        return super().partial_update(request, *args, **kwargs)
 
 
 class FeedbackListCreateView(generics.ListCreateAPIView):

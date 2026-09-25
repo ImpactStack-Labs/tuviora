@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.accounts.models import SMSPreference
+from apps.sms.models import SMSPreference
 
 from .models import Event, EventRegistration, TicketType
 

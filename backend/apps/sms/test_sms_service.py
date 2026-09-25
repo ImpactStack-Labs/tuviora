@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase, override_settings
 
-from apps.events.services.sms_service import (
+from apps.sms.services.sms_service import (
     SMSServiceError,
     send_sms,
     validate_phone_number,
@@ -52,7 +52,7 @@ class SMSServiceTests(SimpleTestCase):
                 with self.assertRaises(ValueError):
                     validate_phone_number(number)
 
-    @patch("apps.events.services.sms_service.africastalking")
+    @patch("apps.sms.services.sms_service.africastalking")
     def test_successful_sms_submission(self, mock_at):
         mock_at.SMS.send.return_value = {
             "SMSMessageData": {
@@ -86,7 +86,7 @@ class SMSServiceTests(SimpleTestCase):
             "Success",
         )
 
-    @patch("apps.events.services.sms_service.africastalking")
+    @patch("apps.sms.services.sms_service.africastalking")
     def test_rejected_sms_raises_error(self, mock_at):
         mock_at.SMS.send.return_value = {
             "SMSMessageData": {
@@ -102,7 +102,7 @@ class SMSServiceTests(SimpleTestCase):
         with self.assertRaises(SMSServiceError):
             send_sms("+256700123456", "Test message")
 
-    @patch("apps.events.services.sms_service.africastalking")
+    @patch("apps.sms.services.sms_service.africastalking")
     def test_empty_provider_response_raises_error(self, mock_at):
         mock_at.SMS.send.return_value = {
             "SMSMessageData": {"Recipients": []}
@@ -111,7 +111,7 @@ class SMSServiceTests(SimpleTestCase):
         with self.assertRaises(SMSServiceError):
             send_sms("+256700123456", "Test message")
 
-    @patch("apps.events.services.sms_service.africastalking")
+    @patch("apps.sms.services.sms_service.africastalking")
     def test_api_failure_raises_error(self, mock_at):
         mock_at.SMS.send.side_effect = ConnectionError(
             "Simulated provider failure"
@@ -120,7 +120,7 @@ class SMSServiceTests(SimpleTestCase):
         with self.assertRaises(SMSServiceError):
             send_sms("+256700123456", "Test message")
 
-    @patch("apps.events.services.sms_service.africastalking")
+    @patch("apps.sms.services.sms_service.africastalking")
     def test_empty_message_is_rejected(self, mock_at):
         with self.assertRaises(ValueError):
             send_sms("+256700123456", "   ")
@@ -128,7 +128,7 @@ class SMSServiceTests(SimpleTestCase):
         mock_at.SMS.send.assert_not_called()
 
     @override_settings(AFRICASTALKING_API_KEY="")
-    @patch("apps.events.services.sms_service.africastalking")
+    @patch("apps.sms.services.sms_service.africastalking")
     def test_missing_credentials(self, mock_at):
         with self.assertRaises(SMSServiceError):
             send_sms("+256700123456", "Test message")

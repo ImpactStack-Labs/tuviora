@@ -1,3 +1,5 @@
+from .ticket_checkin_views import TicketCheckInView
+from .registration_ticket_views import MyRegistrationTicketView
 from .public_views import PublicEventDetailView, PublicEventListView
 from .registration_views import (
     CancelEventRegistrationView,
@@ -5,12 +7,14 @@ from .registration_views import (
     MyEventRegistrationView,
     MyRegistrationsListView,
 )
+from .payment_views import InitiateRegistrationPaymentView
 
 from .team_views import (
     EventTeamView,
     EventInvitationView,
     EventInvitationRevokeView,
     InvitationAcceptView,
+    MessageTeamView,
 )
 
 from django.urls import path
@@ -37,6 +41,18 @@ from .ticket_views import (
 
 
 urlpatterns = [
+    path(
+        "<int:event_id>/tickets/check-in/",
+        TicketCheckInView.as_view(),
+        name="event-ticket-check-in",
+    ),
+
+    path(
+        "<int:event_id>/registrations/me/ticket/",
+        MyRegistrationTicketView.as_view(),
+        name="my-registration-ticket",
+    ),
+
     path(
         "registrations/me/",
         MyRegistrationsListView.as_view(),
@@ -68,6 +84,11 @@ urlpatterns = [
         name="cancel-event-registration",
     ),
     path(
+        "<int:event_id>/registrations/me/pay/",
+        InitiateRegistrationPaymentView.as_view(),
+        name="initiate-registration-payment",
+    ),
+    path(
         "<int:event_id>/ticket-types/",
         EventTicketTypeListCreateView.as_view(),
         name="event-ticket-types",
@@ -87,6 +108,11 @@ urlpatterns = [
         "<int:event_id>/team/",
         EventTeamView.as_view(),
         name="event-team",
+    ),
+    path(
+        "<int:event_id>/team/message/",
+        MessageTeamView.as_view(),
+        name="event-team-message",
     ),
     path(
         "<int:event_id>/invitations/",

@@ -7,6 +7,7 @@ from .conference_views import (
     EventConferenceStatusView,
 )
 from .conference_callback import conference_callback
+from .incident_call_views import IncidentCallTeamView
 from .views import voice_callback
 
 
@@ -40,5 +41,10 @@ urlpatterns = [
         "events/<int:event_id>/conference/end/",
         EventConferenceEndView.as_view(),
         name="event-conference-end",
+    ),
+    path(
+        "events/<int:event_id>/incidents/<int:incident_id>/call-team/",
+        IncidentCallTeamView.as_view(),
+        name="event-incident-call-team",
     ),
 ]
