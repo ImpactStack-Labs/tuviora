@@ -5,9 +5,9 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from apps.accounts.models import SMSPreference
-from apps.events.services.event_sms_notifications import send_event_sms
-from apps.events.services.sms_service import SMSServiceError
+from apps.sms.models import SMSPreference
+from apps.sms.services.event_sms_notifications import send_event_sms
+from apps.sms.services.sms_service import SMSServiceError
 
 
 class EventSMSNotificationTests(TestCase):
@@ -44,7 +44,7 @@ class EventSMSNotificationTests(TestCase):
         )
 
     @patch(
-        "apps.events.services.event_sms_notifications.send_sms"
+        "apps.sms.services.event_sms_notifications.send_sms"
     )
     def test_only_selected_opted_in_user_receives_sms(
         self,
@@ -63,7 +63,7 @@ class EventSMSNotificationTests(TestCase):
         self.assertEqual(result["skipped"], 1)
 
     @patch(
-        "apps.events.services.event_sms_notifications.send_sms"
+        "apps.sms.services.event_sms_notifications.send_sms"
     )
     def test_unselected_user_receives_nothing(
         self,
@@ -81,7 +81,7 @@ class EventSMSNotificationTests(TestCase):
         )
 
     @patch(
-        "apps.events.services.event_sms_notifications.send_sms"
+        "apps.sms.services.event_sms_notifications.send_sms"
     )
     def test_provider_failure_is_recorded(
         self,
@@ -100,7 +100,7 @@ class EventSMSNotificationTests(TestCase):
         self.assertEqual(result["failed"], 1)
 
     @patch(
-        "apps.events.services.event_sms_notifications.send_sms"
+        "apps.sms.services.event_sms_notifications.send_sms"
     )
     def test_no_consent_means_no_sms(
         self,
@@ -115,7 +115,7 @@ class EventSMSNotificationTests(TestCase):
         self.assertEqual(result["skipped"], 1)
 
     @patch(
-        "apps.events.services.event_sms_notifications.send_sms"
+        "apps.sms.services.event_sms_notifications.send_sms"
     )
     def test_empty_recipient_list_sends_nothing(
         self,

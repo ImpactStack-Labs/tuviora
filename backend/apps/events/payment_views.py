@@ -9,16 +9,17 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.sms.services.event_sms_notifications import send_event_sms
+from apps.sms.services.sms_service import validate_phone_number
+
 from .models import EventRegistration, Payment
 from .payment_serializers import PaymentSerializer
-from .services.event_sms_notifications import send_event_sms
 from .services.marzpay_service import (
     MarzPayError,
     MarzPayUnavailable,
     initiate_collection,
     verify_webhook_signature,
 )
-from .services.sms_service import validate_phone_number
 
 logger = logging.getLogger(__name__)
 

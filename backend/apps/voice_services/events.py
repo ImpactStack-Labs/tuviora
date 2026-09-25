@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from apps.accounts.models import SMSPreference
+from apps.sms.models import SMSPreference
 from apps.events.models import Event, EventRegistration
 
 

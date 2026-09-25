@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from apps.accounts.models import SMSPreference
+from apps.sms.models import SMSPreference
 from apps.events.models import Event, EventRegistration, TicketType
 
 

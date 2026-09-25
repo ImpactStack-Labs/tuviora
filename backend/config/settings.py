@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'apps.events',
     'apps.accounts.apps.AccountsConfig',
+    'apps.sms.apps.SMSConfig',
 ]
 
 MIDDLEWARE = [
