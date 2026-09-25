@@ -1,8 +1,13 @@
 import { Link, NavLink } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, LogOut, UserRound } from 'lucide-react'
 import { navigation } from './navigation'
 
-export default function Sidebar({ closeMenu }) {
+export default function Sidebar({
+  closeMenu,
+  user,
+  onLogout,
+  signingOut = false,
+}) {
   return (
     <div className="flex h-full flex-col bg-[#1A3F22] text-white">
       <Link to="/" className="px-6 py-8 text-3xl font-bold">
@@ -33,6 +38,33 @@ export default function Sidebar({ closeMenu }) {
           </NavLink>
         ))}
       </nav>
+
+      <div className="mx-4 border-t border-white/20 px-3 pt-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#365B40]">
+            <UserRound size={20} />
+          </div>
+
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">
+              {user?.username || 'Account'}
+            </p>
+            <p className="text-xs text-[#B8CBB8]">
+              {user?.is_organizer ? 'Organizer' : 'Event team'}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          disabled={signingOut}
+          onClick={onLogout}
+          className="mt-4 flex w-full items-center gap-2 rounded-lg border border-white/20 px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#365B40] disabled:opacity-50"
+        >
+          <LogOut size={18} />
+          {signingOut ? 'Signing out...' : 'Sign out'}
+        </button>
+      </div>
 
       <Link
         to="/"
