@@ -37,6 +37,24 @@ class InitiateRegistrationPaymentView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+            # Guard against a second (now-serialized) request creating its
+            # own Payment for this registration while an earlier attempt is
+            # still in flight. registration.status alone can't catch this,
+            # since this view never writes it. FAILED/CANCELLED are
+            # terminal and must not block a retry.
+            if registration.payments.filter(
+                status__in=[Payment.Status.PENDING, Payment.Status.PROCESSING]
+            ).exists():
+                return Response(
+                    {
+                        "detail": (
+                            "A payment is already in progress for this "
+                            "registration."
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             method = request.data.get("method", "mobile_money")
 
             if method not in (

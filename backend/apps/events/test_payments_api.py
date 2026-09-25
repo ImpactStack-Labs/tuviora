@@ -208,3 +208,49 @@ class InitiatePaymentAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         mock_select_for_update.assert_called_once()
         self.assertEqual(Payment.objects.count(), 1)
+
+    def test_rejects_new_attempt_while_payment_already_in_progress(self):
+        # Regression test for the actual defect the lock alone didn't fix:
+        # registration.status stays PAYMENT_PENDING throughout, so a second
+        # request must be rejected by finding the existing non-terminal
+        # Payment, not by any change to registration.status.
+        Payment.objects.create(
+            registration=self.registration,
+            reference="33333333-3333-3333-3333-333333333333",
+            method=Payment.Method.MOBILE_MONEY,
+            phone_number="+256700123456",
+            amount=self.registration.amount_due,
+            currency=self.registration.currency,
+            status=Payment.Status.PROCESSING,
+        )
+
+        response = self.client.post(
+            self.pay_url,
+            {"method": "mobile_money", "phone_number": "+256700123456"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Payment.objects.count(), 1)
+
+    def test_can_retry_after_failed_payment(self):
+        Payment.objects.create(
+            registration=self.registration,
+            reference="44444444-4444-4444-4444-444444444444",
+            method=Payment.Method.MOBILE_MONEY,
+            phone_number="+256700123456",
+            amount=self.registration.amount_due,
+            currency=self.registration.currency,
+            status=Payment.Status.FAILED,
+        )
+
+        with patch("apps.events.payment_views.initiate_collection") as mock_initiate:
+            mock_initiate.return_value = {
+                "transaction": {"uuid": "retry", "status": "processing"},
+            }
+            response = self.client.post(
+                self.pay_url,
+                {"method": "mobile_money", "phone_number": "+256700123456"},
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Payment.objects.count(), 2)
