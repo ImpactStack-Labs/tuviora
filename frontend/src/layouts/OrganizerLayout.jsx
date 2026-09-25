@@ -16,11 +16,12 @@ import EventAttendance from '../pages/EventAttendance'
 import LiveOperations from '../pages/LiveOperations'
 import IncidentManagement from '../pages/IncidentManagement'
 import Communications from '../pages/Communications'
+import FeedbackPage from '../pages/FeedbackPage'
 
 // Sidebar paths that have a real page; the rest render the placeholder.
 const builtPaths = new Set([
   'events', 'readiness', 'team', 'registration', 'attendance',
-  'live', 'incidents', 'communications',
+  'live', 'incidents', 'communications', 'feedback',
 ])
 
 export default function OrganizerLayout({ user, onLogout }) {
@@ -126,6 +127,7 @@ export default function OrganizerLayout({ user, onLogout }) {
             <Route path="live" element={<LiveOperations />} />
             <Route path="incidents" element={<IncidentManagement />} />
             <Route path="communications" element={<Communications />} />
+            <Route path="feedback" element={<FeedbackPage />} />
             {navigation.slice(1).filter(({ path }) => !builtPaths.has(path)).map(({ name, path }) => (
               <Route
                 key={path}
