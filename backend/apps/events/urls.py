@@ -1,3 +1,5 @@
+from .ticket_checkin_views import TicketCheckInView
+from .registration_ticket_views import MyRegistrationTicketView
 from .public_views import PublicEventDetailView, PublicEventListView
 from .registration_views import (
     CancelEventRegistrationView,
@@ -39,6 +41,18 @@ from .ticket_views import (
 
 
 urlpatterns = [
+    path(
+        "<int:event_id>/tickets/check-in/",
+        TicketCheckInView.as_view(),
+        name="event-ticket-check-in",
+    ),
+
+    path(
+        "<int:event_id>/registrations/me/ticket/",
+        MyRegistrationTicketView.as_view(),
+        name="my-registration-ticket",
+    ),
+
     path(
         "registrations/me/",
         MyRegistrationsListView.as_view(),

@@ -91,3 +91,15 @@ export function createTicketType(eventId, ticketType) {
     body: JSON.stringify(ticketType),
   })
 }
+
+
+export function getMyRegistrationTicket(eventId) {
+  return apiRequest(`/api/events/${eventId}/registrations/me/ticket/`)
+}
+
+export function checkInEventTicket(eventId, token) {
+  return apiRequest(`/api/events/${eventId}/tickets/check-in/`, {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  })
+}

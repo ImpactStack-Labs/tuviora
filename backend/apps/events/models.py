@@ -1,3 +1,4 @@
+import uuid
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -590,6 +591,47 @@ class EventRegistration(models.Model):
             f"{self.user} - {self.event} "
             f"({self.status})"
         )
+
+
+
+class RegistrationTicket(models.Model):
+    """A unique ticket associated with an attendee registration."""
+
+    registration = models.OneToOneField(
+        EventRegistration,
+        on_delete=models.CASCADE,
+        related_name="ticket",
+    )
+
+    reference = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+    )
+
+    qr_token = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+    )
+
+    checked_in_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    checked_in_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="checked_in_tickets",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Ticket {self.reference}"
 
 
 class Payment(models.Model):

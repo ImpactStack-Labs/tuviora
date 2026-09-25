@@ -12,6 +12,7 @@ import CreateEvent from '../pages/CreateEvent'
 import EventReadiness from '../pages/EventReadiness'
 import EventTeam from '../pages/EventTeam'
 import EventRegistrations from '../pages/EventRegistrations'
+import EventAttendance from '../pages/EventAttendance'
 import LiveOperations from '../pages/LiveOperations'
 import IncidentManagement from '../pages/IncidentManagement'
 
@@ -114,9 +115,10 @@ export default function OrganizerLayout({ user, onLogout }) {
             <Route path="readiness" element={<EventReadiness />} />
             <Route path="team" element={<EventTeam />} />
             <Route path="registration" element={<EventRegistrations />} />
+            <Route path="attendance" element={<EventAttendance />} />
             <Route path="live" element={<LiveOperations />} />
             <Route path="incidents" element={<IncidentManagement />} />
-            {navigation.slice(1).filter(({ path }) => path !== 'events' && path !== 'readiness' && path !== 'team' && path !== 'registration' && path !== 'live' && path !== 'incidents').map(({ name, path }) => (
+            {navigation.slice(1).filter(({ path }) => path !== 'events' && path !== 'readiness' && path !== 'team' && path !== 'registration' && path !== 'attendance' && path !== 'live' && path !== 'incidents').map(({ name, path }) => (
               <Route
                 key={path}
                 path={path}
