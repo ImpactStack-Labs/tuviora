@@ -643,6 +643,21 @@ class Payment(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [
+            # Backstop for the in-progress check in payment_views.py:
+            # select_for_update() is a no-op on sqlite (the project's
+            # actual DB today), so without this, two concurrent requests
+            # could both pass the application-level check and both INSERT.
+            # Nested classes don't share Payment's body scope, so this
+            # can't reference Status.PENDING/PROCESSING directly here —
+            # using the raw enum values instead (they're the DB values
+            # Status.PENDING/PROCESSING actually store).
+            models.UniqueConstraint(
+                fields=["registration"],
+                condition=models.Q(status__in=["pending", "processing"]),
+                name="one_payment_in_progress_per_registration",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.reference} ({self.status})"

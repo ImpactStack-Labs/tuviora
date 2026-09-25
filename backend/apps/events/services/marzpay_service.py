@@ -16,6 +16,16 @@ class MarzPayError(Exception):
     """Raised when a MarzPay API call cannot be completed."""
 
 
+class MarzPayUnavailable(MarzPayError):
+    """Raised when we can't tell if MarzPay received the request at all.
+
+    A network-level failure (timeout, connection reset, DNS) is NOT the same
+    as a definite provider rejection (4xx, or a non-success status body):
+    MarzPay may have already accepted the collection. Callers must not treat
+    this as a terminal failure — see payment_views.py.
+    """
+
+
 def _base_url():
     return getattr(
         settings,
@@ -92,7 +102,7 @@ def initiate_collection(
         )
     except requests.RequestException as exc:
         logger.exception("MarzPay collection request failed.")
-        raise MarzPayError(
+        raise MarzPayUnavailable(
             "Could not reach the payment provider. Please try again."
         ) from exc
 
@@ -114,7 +124,7 @@ def get_transaction(transaction_id):
             timeout=15,
         )
     except requests.RequestException as exc:
-        raise MarzPayError(
+        raise MarzPayUnavailable(
             "Could not reach the payment provider."
         ) from exc
 

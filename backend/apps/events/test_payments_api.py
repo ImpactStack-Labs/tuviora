@@ -8,13 +8,14 @@ import hmac
 import json
 
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError, transaction
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from .models import Event, EventRegistration, Payment, TicketType
-from .services.marzpay_service import MarzPayError
+from .services.marzpay_service import MarzPayError, MarzPayUnavailable
 
 User = get_user_model()
 
@@ -61,14 +62,80 @@ class PaymentModelTests(TestCase):
         self.assertEqual(payment.status, Payment.Status.PENDING)
 
     def test_registration_can_have_multiple_payment_attempts(self):
-        for i in range(2):
-            Payment.objects.create(
-                registration=self.registration,
-                reference=f"2222222{i}-2222-2222-2222-222222222222",
-                method=Payment.Method.MOBILE_MONEY,
-                amount=self.registration.amount_due,
-                currency=self.registration.currency,
-            )
+        # Multiple attempts over time are fine as long as only the most
+        # recent one is non-terminal — two simultaneously PENDING/
+        # PROCESSING payments for the same registration is exactly what
+        # one_payment_in_progress_per_registration (added for Finding 2)
+        # now blocks at the DB level, so the first attempt here must be
+        # terminal before the second is created.
+        Payment.objects.create(
+            registration=self.registration,
+            reference="22222220-2222-2222-2222-222222222222",
+            method=Payment.Method.MOBILE_MONEY,
+            amount=self.registration.amount_due,
+            currency=self.registration.currency,
+            status=Payment.Status.FAILED,
+        )
+        Payment.objects.create(
+            registration=self.registration,
+            reference="22222221-2222-2222-2222-222222222222",
+            method=Payment.Method.MOBILE_MONEY,
+            amount=self.registration.amount_due,
+            currency=self.registration.currency,
+        )
+        self.assertEqual(self.registration.payments.count(), 2)
+
+    def test_db_rejects_second_in_progress_payment_for_same_registration(
+        self,
+    ):
+        # Proves the one_payment_in_progress_per_registration constraint
+        # (the DB-level backstop for select_for_update(), which is a no-op
+        # on sqlite) actually fires. A failed INSERT poisons the current
+        # DB transaction until rollback, so the assertion itself must run
+        # inside a savepoint (transaction.atomic()) — otherwise Django's
+        # test-wrapping transaction would raise TransactionManagementError
+        # on the next ORM call instead of letting the test finish cleanly.
+        Payment.objects.create(
+            registration=self.registration,
+            reference="55555555-5555-5555-5555-555555555555",
+            method=Payment.Method.MOBILE_MONEY,
+            amount=self.registration.amount_due,
+            currency=self.registration.currency,
+            status=Payment.Status.PENDING,
+        )
+
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Payment.objects.create(
+                    registration=self.registration,
+                    reference="66666666-6666-6666-6666-666666666666",
+                    method=Payment.Method.MOBILE_MONEY,
+                    amount=self.registration.amount_due,
+                    currency=self.registration.currency,
+                    status=Payment.Status.PROCESSING,
+                )
+
+        self.assertEqual(self.registration.payments.count(), 1)
+
+    def test_db_allows_second_payment_once_first_is_terminal(self):
+        # Sanity check: the constraint is partial (PENDING/PROCESSING
+        # only), so it must not block a retry after a FAILED attempt.
+        Payment.objects.create(
+            registration=self.registration,
+            reference="77777777-7777-7777-7777-777777777777",
+            method=Payment.Method.MOBILE_MONEY,
+            amount=self.registration.amount_due,
+            currency=self.registration.currency,
+            status=Payment.Status.FAILED,
+        )
+        Payment.objects.create(
+            registration=self.registration,
+            reference="88888888-8888-8888-8888-888888888888",
+            method=Payment.Method.MOBILE_MONEY,
+            amount=self.registration.amount_due,
+            currency=self.registration.currency,
+            status=Payment.Status.PENDING,
+        )
         self.assertEqual(self.registration.payments.count(), 2)
 
 
@@ -172,6 +239,41 @@ class InitiatePaymentAPITests(APITestCase):
             EventRegistration.Status.PAYMENT_PENDING,
         )
 
+    @patch("apps.events.payment_views.initiate_collection")
+    def test_ambiguous_provider_failure_leaves_payment_pending(
+        self, mock_initiate
+    ):
+        # A network-level failure talking to MarzPay is ambiguous — we
+        # don't know if the provider received the request — so unlike a
+        # definite MarzPayError, this must NOT mark the payment FAILED.
+        # Marking it FAILED would let the in-progress gate below wave a
+        # retry through while the first attempt might still be live on
+        # MarzPay's side: a real double charge if the attendee approves
+        # both prompts.
+        mock_initiate.side_effect = MarzPayUnavailable("timed out")
+
+        response = self.client.post(
+            self.pay_url,
+            {"method": "mobile_money", "phone_number": "+256700123456"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+        self.assertEqual(
+            Payment.objects.first().status, Payment.Status.PENDING
+        )
+
+        # A hasty retry must be rejected by the existing in-progress gate
+        # while the ambiguous attempt sits PENDING — this is what actually
+        # closes the double-charge path.
+        retry_response = self.client.post(
+            self.pay_url,
+            {"method": "mobile_money", "phone_number": "+256700123456"},
+        )
+        self.assertEqual(
+            retry_response.status_code, status.HTTP_400_BAD_REQUEST
+        )
+        self.assertEqual(Payment.objects.count(), 1)
+
     def test_confirmed_registration_cannot_pay_again(self):
         self.registration.status = EventRegistration.Status.CONFIRMED
         self.registration.save(update_fields=["status"])
@@ -217,6 +319,15 @@ class InitiatePaymentAPITests(APITestCase):
         # registration.status stays PAYMENT_PENDING throughout, so a second
         # request must be rejected by finding the existing non-terminal
         # Payment, not by any change to registration.status.
+        #
+        # This covers the normal (non-racing) request path via the
+        # application-level .exists() check. The DB-level
+        # one_payment_in_progress_per_registration constraint — the
+        # backstop for when select_for_update() doesn't actually lock
+        # (sqlite) and two concurrent requests both pass this check — is
+        # proven directly at the model layer in
+        # PaymentModelTests.test_db_rejects_second_in_progress_payment_for_same_registration
+        # rather than simulated here with mocked concurrency.
         Payment.objects.create(
             registration=self.registration,
             reference="33333333-3333-3333-3333-333333333333",

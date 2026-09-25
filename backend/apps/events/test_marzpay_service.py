@@ -8,6 +8,7 @@ from django.test import SimpleTestCase, override_settings
 
 from apps.events.services.marzpay_service import (
     MarzPayError,
+    MarzPayUnavailable,
     get_transaction,
     initiate_collection,
     verify_webhook_signature,
@@ -72,6 +73,9 @@ class MarzPayCollectionTests(SimpleTestCase):
 
     @patch("apps.events.services.marzpay_service.requests")
     def test_provider_error_raises_marzpay_error(self, mock_requests):
+        # A definite rejection (4xx / non-success body) is a MarzPayError,
+        # NOT a MarzPayUnavailable — MarzPay told us "no", so this is safe
+        # to treat as terminal (see payment_views.py).
         mock_response = Mock(status_code=400)
         mock_response.json.return_value = {
             "status": "error",
@@ -79,7 +83,7 @@ class MarzPayCollectionTests(SimpleTestCase):
         }
         mock_requests.post.return_value = mock_response
 
-        with self.assertRaises(MarzPayError):
+        with self.assertRaises(MarzPayError) as ctx:
             initiate_collection(
                 amount="1000",
                 currency="UGX",
@@ -87,9 +91,13 @@ class MarzPayCollectionTests(SimpleTestCase):
                 method="mobile_money",
                 phone_number="+256700000000",
             )
+        self.assertNotIsInstance(ctx.exception, MarzPayUnavailable)
 
     @patch("apps.events.services.marzpay_service.requests")
-    def test_network_failure_raises_marzpay_error(self, mock_requests):
+    def test_network_failure_raises_marzpay_unavailable(self, mock_requests):
+        # A network-level failure is ambiguous (we don't know if MarzPay
+        # received the request), so it must raise the more specific
+        # MarzPayUnavailable, not just the base MarzPayError.
         import requests as real_requests
 
         mock_requests.RequestException = real_requests.RequestException
@@ -97,7 +105,7 @@ class MarzPayCollectionTests(SimpleTestCase):
             "boom"
         )
 
-        with self.assertRaises(MarzPayError):
+        with self.assertRaises(MarzPayUnavailable):
             initiate_collection(
                 amount="1000",
                 currency="UGX",

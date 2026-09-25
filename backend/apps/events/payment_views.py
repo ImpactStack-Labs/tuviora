@@ -2,7 +2,7 @@ import logging
 import uuid
 
 from django.conf import settings
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import Http404
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -14,12 +14,17 @@ from .payment_serializers import PaymentSerializer
 from .services.event_sms_notifications import send_event_sms
 from .services.marzpay_service import (
     MarzPayError,
+    MarzPayUnavailable,
     initiate_collection,
     verify_webhook_signature,
 )
 from .services.sms_service import validate_phone_number
 
 logger = logging.getLogger(__name__)
+
+PAYMENT_IN_PROGRESS_DETAIL = (
+    "A payment is already in progress for this registration."
+)
 
 
 class InitiateRegistrationPaymentView(APIView):
@@ -54,12 +59,7 @@ class InitiateRegistrationPaymentView(APIView):
                 status__in=[Payment.Status.PENDING, Payment.Status.PROCESSING]
             ).exists():
                 return Response(
-                    {
-                        "detail": (
-                            "A payment is already in progress for this "
-                            "registration."
-                        )
-                    },
+                    {"detail": PAYMENT_IN_PROGRESS_DETAIL},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -89,14 +89,29 @@ class InitiateRegistrationPaymentView(APIView):
 
             reference = str(uuid.uuid4())
 
-            payment = Payment.objects.create(
-                registration=registration,
-                reference=reference,
-                method=method,
-                phone_number=phone_number,
-                amount=registration.amount_due,
-                currency=registration.currency,
-            )
+            # Nested atomic (savepoint): on a DB where select_for_update()
+            # above doesn't actually lock (e.g. sqlite), two concurrent
+            # requests can both pass the .exists() check and both reach
+            # this INSERT. The one_payment_in_progress_per_registration
+            # constraint (Payment.Meta) rejects the loser with an
+            # IntegrityError; the savepoint keeps that failure from
+            # poisoning the outer transaction so we can still respond
+            # cleanly instead of 500ing.
+            try:
+                with transaction.atomic():
+                    payment = Payment.objects.create(
+                        registration=registration,
+                        reference=reference,
+                        method=method,
+                        phone_number=phone_number,
+                        amount=registration.amount_due,
+                        currency=registration.currency,
+                    )
+            except IntegrityError:
+                return Response(
+                    {"detail": PAYMENT_IN_PROGRESS_DETAIL},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         try:
             data = initiate_collection(
@@ -111,6 +126,27 @@ class InitiateRegistrationPaymentView(APIView):
                 callback_url=(
                     getattr(settings, "MARZPAY_CALLBACK_URL", "") or None
                 ),
+            )
+        except MarzPayUnavailable as exc:
+            # ponytail: we genuinely don't know whether MarzPay received
+            # this request, so we leave the payment PENDING instead of
+            # FAILED — marking it FAILED would let the in-progress gate
+            # above wave through a retry while the first attempt might
+            # still be live on MarzPay's side, risking a double charge.
+            # Deferred upgrade path: get_transaction() (already written,
+            # unused) could reconcile this automatically; for now an
+            # operator resolves a stuck row via Django admin (Payment).
+            logger.warning(
+                "MarzPay unavailable for payment %s: %s", payment.reference, exc
+            )
+            return Response(
+                {
+                    "detail": (
+                        "We're confirming this payment with the provider. "
+                        "Please wait a moment before trying again."
+                    )
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
             )
         except MarzPayError as exc:
             payment.status = Payment.Status.FAILED
