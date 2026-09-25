@@ -33,7 +33,7 @@ const initialForm = {
 }
 
 const fieldClass =
-  'mt-2 w-full rounded-xl border border-[#DCE5D8] bg-white px-4 py-3 text-[#1A3F22] outline-none transition focus:border-[#58761B] focus:ring-2 focus:ring-[#58761B]/20'
+  'mt-2 w-full rounded-xl border border-border-soft bg-white px-4 py-3 text-[#1A3F22] outline-none transition focus:border-[#58761B] focus:ring-2 focus:ring-[#58761B]/20'
 
 export default function CreateEvent() {
   const [form, setForm] = useState(initialForm)
@@ -226,7 +226,7 @@ export default function CreateEvent() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <section className="rounded-2xl border border-[#E3E9DF] bg-white p-6 sm:p-8">
+        <section className="rounded-2xl border border-border-soft bg-white p-6 sm:p-8">
           <div className="mb-7 flex items-center gap-3">
             <span className="rounded-xl bg-[#EDF3E8] p-3 text-[#58761B]">
               <CalendarDays size={23} />
@@ -297,7 +297,7 @@ export default function CreateEvent() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-[#E3E9DF] bg-white p-6 sm:p-8">
+        <section className="rounded-2xl border border-border-soft bg-white p-6 sm:p-8">
           <h2 className="text-xl font-bold">Date and location</h2>
           <div className="mt-5">
             <EventTimezone
@@ -483,7 +483,7 @@ export default function CreateEvent() {
             )}
 
             {hasVirtualLocation && (
-              <div className="sm:col-span-2 space-y-5 rounded-2xl border border-[#DCE5D8] bg-[#F7FAF5] p-5">
+              <div className="sm:col-span-2 space-y-5 rounded-2xl border border-border-soft bg-[#F7FAF5] p-5">
                 <div>
                   <h3 className="text-lg font-bold text-[#1A3F22]">
                     Virtual event details
@@ -552,7 +552,7 @@ export default function CreateEvent() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-[#E3E9DF] bg-white p-6 sm:p-8">
+        <section className="rounded-2xl border border-border-soft bg-white p-6 sm:p-8">
           <h2 className="text-xl font-bold">Tickets &amp; pricing</h2>
           <p className="mt-2 text-sm text-[#647064]">
             Leave this off for a free event. Turn it on to charge
@@ -578,7 +578,7 @@ export default function CreateEvent() {
               {form.ticketTypes.map((ticket) => (
                 <div
                   key={ticket.key}
-                  className="grid gap-3 rounded-xl border border-[#DCE5D8] p-4 sm:grid-cols-[2fr_1fr_1fr_auto]"
+                  className="grid gap-3 rounded-xl border border-border-soft p-4 sm:grid-cols-[2fr_1fr_1fr_auto]"
                 >
                   <input
                     value={ticket.name}
@@ -624,7 +624,7 @@ export default function CreateEvent() {
                     type="button"
                     onClick={() => removeTicketType(ticket.key)}
                     disabled={form.ticketTypes.length === 1}
-                    className="rounded-xl border border-[#DCE5D8] px-4 py-2 text-sm font-semibold text-[#1A3F22] disabled:opacity-40"
+                    className="rounded-xl border border-border-soft px-4 py-2 text-sm font-semibold text-[#1A3F22] disabled:opacity-40"
                   >
                     Remove
                   </button>
@@ -659,7 +659,7 @@ export default function CreateEvent() {
         <div className="flex flex-wrap justify-end gap-3">
           <Link
             to="/operations/events"
-            className="rounded-xl border border-[#DCE5D8] bg-white px-6 py-3 font-semibold text-[#1A3F22] hover:bg-[#F2F6EF]"
+            className="rounded-xl border border-border-soft bg-white px-6 py-3 font-semibold text-[#1A3F22] hover:bg-[#F2F6EF]"
           >
             Cancel
           </Link>
@@ -668,7 +668,7 @@ export default function CreateEvent() {
             disabled={saving}
             className="rounded-xl bg-[#1A3F22] px-6 py-3 font-semibold text-white transition hover:bg-[#31563A] disabled:cursor-wait disabled:opacity-60"
           >
-            {saving ? 'Creating event...' : 'Create Event'}
+            {saving ? 'Creating event...' : 'Create event'}
           </button>
         </div>
       </form>

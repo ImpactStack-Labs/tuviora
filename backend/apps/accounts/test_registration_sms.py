@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from .models import SMSPreference
+from apps.sms.models import SMSPreference
 
 
 @override_settings(
@@ -135,7 +135,7 @@ class RegistrationSMSTests(TestCase):
         # Test the actual registration wrapper with a provider
         # failure type that the SMS service normally converts.
         from apps.accounts.views import send_registration_sms
-        from apps.events.services.sms_service import SMSServiceError
+        from apps.sms.services.sms_service import SMSServiceError
 
         mock_send.side_effect = SMSServiceError(
             "Simulated provider failure"

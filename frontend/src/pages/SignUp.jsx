@@ -67,7 +67,7 @@ export default function SignUp() {
           tuviora<span className="text-[#D99201]">.</span>
         </Link>
 
-        <section className="mt-9 rounded-3xl border border-[#E2E9DE] bg-white p-7 shadow-sm sm:p-10">
+        <section className="mt-9 rounded-3xl border border-border-soft bg-white p-7 shadow-sm sm:p-10">
           <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#EDF3E8] text-[#58761B]">
             <UserPlus size={29} />
           </div>
@@ -75,7 +75,7 @@ export default function SignUp() {
           {registered ? (
             <>
               <h1 className="mt-7 text-3xl font-bold">Check your email</h1>
-              <p className="mt-4 leading-7 text-[#647365]">
+              <p className="mt-4 leading-7 text-text-muted">
                 We created your account and sent a verification link to
                 {' '}<strong>{form.email}</strong>. Open the link to activate
                 your account before signing in.
@@ -85,7 +85,7 @@ export default function SignUp() {
                 in the Django backend terminal.
               </div>
               {invited && (
-                <p className="mt-5 text-sm text-[#647365]">
+                <p className="mt-5 text-sm text-text-muted">
                   Your event invitation is saved in this browser tab.
                   After verification, return to your invitation to join the team.
                 </p>
@@ -101,7 +101,7 @@ export default function SignUp() {
                 {invited ? 'Join your event team' : 'Get started'}
               </p>
               <h1 className="mt-2 text-3xl font-bold">Create your account</h1>
-              <p className="mt-3 text-[#647365]">
+              <p className="mt-3 text-text-muted">
                 {invited
                   ? 'Use the same email address that received your invitation.'
                   : 'Create an account to organize and collaborate on events.'}
@@ -121,7 +121,7 @@ export default function SignUp() {
                         autoComplete={field === 'first_name' ? 'given-name' : 'family-name'}
                         required
                         maxLength={150}
-                        className="mt-2 w-full rounded-xl border border-[#DCE5D8] px-4 py-3 outline-none focus:border-[#58761B]"
+                        className="mt-2 w-full rounded-xl border border-border-soft px-4 py-3 outline-none focus:border-[#58761B]"
                       />
                     </label>
                   ))}
@@ -135,7 +135,7 @@ export default function SignUp() {
                     autoComplete="username"
                     required
                     maxLength={150}
-                    className="mt-2 w-full rounded-xl border border-[#DCE5D8] px-4 py-3 outline-none focus:border-[#58761B]"
+                    className="mt-2 w-full rounded-xl border border-border-soft px-4 py-3 outline-none focus:border-[#58761B]"
                   />
                 </label>
 
@@ -147,13 +147,13 @@ export default function SignUp() {
                     onChange={(event) => update('email', event.target.value)}
                     autoComplete="email"
                     required
-                    className="mt-2 w-full rounded-xl border border-[#DCE5D8] px-4 py-3 outline-none focus:border-[#58761B]"
+                    className="mt-2 w-full rounded-xl border border-border-soft px-4 py-3 outline-none focus:border-[#58761B]"
                   />
                 </label>
 
-                <div className="space-y-4 rounded-2xl border border-[#E2E9DE] bg-[#F7F9F5] p-5">
+                <div className="space-y-4 rounded-2xl border border-border-soft bg-[#F7F9F5] p-5">
                   <label className="block text-sm font-semibold">
-                    Phone number <span className="font-normal text-[#647365]">(optional)</span>
+                    Phone number <span className="font-normal text-text-muted">(optional)</span>
                     <input
                       type="tel"
                       value={form.phone_number}
@@ -161,11 +161,11 @@ export default function SignUp() {
                       autoComplete="tel"
                       placeholder="+256700123456"
                       maxLength={16}
-                      className="mt-2 w-full rounded-xl border border-[#DCE5D8] bg-white px-4 py-3 outline-none focus:border-[#58761B]"
+                      className="mt-2 w-full rounded-xl border border-border-soft bg-white px-4 py-3 outline-none focus:border-[#58761B]"
                     />
                   </label>
 
-                  <p className="text-xs leading-5 text-[#647365]">
+                  <p className="text-xs leading-5 text-text-muted">
                     Include your country code, for example +256 for Uganda.
                   </p>
 
@@ -179,7 +179,7 @@ export default function SignUp() {
                     <span>
                       I agree to receive Tuviora SMS notifications, including
                       event reminders, announcements and relevant incident updates.
-                      <span className="mt-1 block text-xs text-[#647365]">
+                      <span className="mt-1 block text-xs text-text-muted">
                         Optional. A phone number is required if you opt in.
                       </span>
                     </span>
@@ -200,7 +200,7 @@ export default function SignUp() {
                         autoComplete={field === 'password' ? 'new-password' : 'new-password'}
                         required
                         minLength={8}
-                        className="mt-2 w-full rounded-xl border border-[#DCE5D8] px-4 py-3 outline-none focus:border-[#58761B]"
+                        className="mt-2 w-full rounded-xl border border-border-soft px-4 py-3 outline-none focus:border-[#58761B]"
                       />
                     </label>
                   ))}
@@ -219,7 +219,7 @@ export default function SignUp() {
                 </button>
               </form>
 
-              <p className="mt-6 text-center text-sm text-[#647365]">
+              <p className="mt-6 text-center text-sm text-text-muted">
                 Already registered?{' '}
                 <Link to={signInPath} className="font-semibold text-[#58761B] hover:underline">
                   Sign in

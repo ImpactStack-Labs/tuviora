@@ -2,7 +2,8 @@
 
 from datetime import datetime
 
-from apps.events.models import Event
+from apps.sms.models import SMSPreference
+from apps.events.models import Event, EventRegistration
 
 
 def get_public_event(event_id):
@@ -16,6 +17,30 @@ def get_public_event(event_id):
             pk=int(event_id),
             status=Event.Status.PUBLISHED,
         )
+        .first()
+    )
+
+
+def get_registration(event_id, phone_number):
+    """Return the caller's own registration for an event, or None.
+
+    ``phone_number`` must already be a verified caller identity (e.g. the
+    telco-assigned number from a USSD session), not user-supplied input.
+    """
+    if not str(event_id).isdigit():
+        return None
+
+    preference = SMSPreference.objects.filter(
+        phone_number=phone_number,
+    ).first()
+
+    if preference is None:
+        return None
+
+    return (
+        EventRegistration.objects
+        .select_related("event", "ticket_type")
+        .filter(event_id=int(event_id), user_id=preference.user_id)
         .first()
     )
 

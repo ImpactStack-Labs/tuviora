@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from apps.voice_services.events import get_public_event
+from apps.voice_services.events import get_public_event, get_registration
 
 
 MAIN_MENU = (
@@ -67,10 +67,30 @@ def ussd_callback(request):
         )
 
     if parts[0] == "2":
-        return reply(
-            "END",
-            "Registration lookup is being connected. Contact the organizer for now.",
+        if len(parts) == 1:
+            return reply("CON", "Enter the event ID:")
+        if len(parts) != 2 or not parts[1].isdigit():
+            return reply("END", "Invalid event ID. Please dial again.")
+
+        try:
+            registration = get_registration(parts[1], phone)
+        except Exception:
+            return reply(
+                "END", "Registration information is unavailable. Please try later."
+            )
+
+        if registration is None:
+            return reply("END", "No registration found for this event.")
+
+        message = (
+            f"{registration.event.name}: {registration.get_status_display()}"
         )
+        if registration.ticket_type is not None:
+            message += f", {registration.ticket_type.name} ticket"
+        if registration.amount_due is not None:
+            message += f", {registration.amount_due} {registration.currency} due"
+
+        return reply("END", message + ".")
 
     if parts[0] == "3":
         return reply(

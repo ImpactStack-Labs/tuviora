@@ -13,8 +13,9 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .models import EmailVerification, SMSPreference
-from apps.events.services.sms_service import (
+from .models import EmailVerification
+from apps.sms.models import SMSPreference
+from apps.sms.services.sms_service import (
     SMSServiceError,
     send_sms,
     validate_phone_number,

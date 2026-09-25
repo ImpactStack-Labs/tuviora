@@ -1,8 +1,8 @@
-"""Consent-aware SMS notifications for Tuviora events."""
+"""Consent-aware SMS notifications for Tuviora."""
 
 import logging
 
-from apps.accounts.models import SMSPreference
+from apps.sms.models import SMSPreference
 
 from .sms_service import SMSServiceError, send_sms
 

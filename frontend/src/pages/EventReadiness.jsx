@@ -6,17 +6,17 @@ import {
   ClipboardCheck,
   Clock3,
   Plus,
-  RefreshCw,
 } from 'lucide-react'
 
 import { getEvents, formatApiError } from '../lib/events'
 import { getEventTeam } from '../lib/team'
-// TUVIORA_TASK_ASSIGNMENT_UI_V1
 import {
   createReadinessTask,
   getReadinessTasks,
   updateReadinessTask,
 } from '../lib/readiness'
+import EmptyState from '../components/EmptyState'
+import LoadingRow from '../components/LoadingRow'
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -43,7 +43,6 @@ function formatDateTime(value) {
 function TaskCard({ task, eventId, onUpdated, teamMembers }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  // TUVIORA_TASK_REASSIGNMENT_V1
   const [editingAssignment, setEditingAssignment] = useState(false)
   const [selectedAssignee, setSelectedAssignee] = useState(
     task.assignee == null ? '' : String(task.assignee),
@@ -102,7 +101,7 @@ function TaskCard({ task, eventId, onUpdated, teamMembers }) {
   }
 
   return (
-    <article className="rounded-2xl border border-[#E3E9DF] bg-white p-5 shadow-sm">
+    <article className="rounded-2xl border border-border-soft bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 flex-1 gap-3">
           {task.status === 'completed' ? (
@@ -154,7 +153,7 @@ function TaskCard({ task, eventId, onUpdated, teamMembers }) {
                   Edit assignment
                 </button>
               ) : (
-                <div className="space-y-3 rounded-xl border border-[#DDE6D6] bg-[#F8FAF5] p-3">
+                <div className="space-y-3 rounded-xl border border-border-soft bg-[#F8FAF5] p-3">
                   <label className="block">
                     <span className="mb-2 block text-sm font-semibold text-[#1A3F22]">
                       Assign to
@@ -165,7 +164,7 @@ function TaskCard({ task, eventId, onUpdated, teamMembers }) {
                       onChange={(event) =>
                         setSelectedAssignee(event.target.value)
                       }
-                      className="w-full rounded-lg border border-[#DDE6D6] bg-white px-3 py-2 text-sm"
+                      className="w-full rounded-lg border border-border-soft bg-white px-3 py-2 text-sm"
                     >
                       <option value="">Unassigned</option>
                       {teamMembers.map((member) => (
@@ -196,7 +195,7 @@ function TaskCard({ task, eventId, onUpdated, teamMembers }) {
                         setEditingAssignment(false)
                         setError('')
                       }}
-                      className="rounded-lg border border-[#DDE6D6] bg-white px-4 py-2 text-sm font-semibold"
+                      className="rounded-lg border border-border-soft bg-white px-4 py-2 text-sm font-semibold"
                     >
                       Cancel
                     </button>
@@ -227,7 +226,7 @@ function TaskCard({ task, eventId, onUpdated, teamMembers }) {
             className={`rounded-lg px-3 py-2 text-sm font-semibold transition disabled:cursor-default ${
               task.status === value
                 ? 'bg-[#1A3F22] text-white'
-                : 'border border-[#DDE6D6] text-[#1A3F22] hover:bg-[#F0F5E9]'
+                : 'border border-border-soft text-[#1A3F22] hover:bg-[#F0F5E9]'
             }`}
           >
             {label}
@@ -440,28 +439,22 @@ export default function EventReadiness() {
       )}
 
       {loadingEvents ? (
-        <p className="text-[#647064]">Loading your events...</p>
+        <LoadingRow label="Loading your events..." />
       ) : events.length === 0 ? (
-        <div className="rounded-2xl border bg-white p-10 text-center">
-          <ClipboardCheck
-            className="mx-auto text-[#58761B]"
-            size={40}
-          />
-          <h2 className="mt-4 text-xl font-bold">
-            Create an event to get started
-          </h2>
-          <p className="mt-2 text-[#647064]">
-            Readiness tasks are organized under individual events.
-          </p>
-        </div>
+        <EmptyState
+          as="h2"
+          icon={ClipboardCheck}
+          title="Create an event to get started"
+          description="Readiness tasks are organized under individual events."
+        />
       ) : (
         <>
-          <section className="rounded-2xl border border-[#E3E9DF] bg-white p-5">
+          <section className="rounded-2xl border border-border-soft bg-white p-5">
             <label
               htmlFor="readinessEvent"
               className="mb-2 block font-semibold text-[#1A3F22]"
             >
-              Select event
+              Select an event
             </label>
 
             <select
@@ -471,11 +464,11 @@ export default function EventReadiness() {
                 setSelectedEventId(event.target.value)
                 setShowForm(false)
               }}
-              className="w-full rounded-xl border border-[#DDE6D6] bg-white px-4 py-3 text-[#1A3F22] outline-none focus:border-[#58761B]"
+              className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 text-[#1A3F22] outline-none focus:border-[#58761B]"
             >
               {events.map((event) => (
                 <option key={event.id} value={event.id}>
-                  {event.name} · Event ID: {event.id}
+                  {event.name}
                 </option>
               ))}
             </select>
@@ -514,7 +507,7 @@ export default function EventReadiness() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[#E3E9DF] bg-white p-6">
+          <section className="rounded-2xl border border-border-soft bg-white p-6">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#1A3F22]">
                 Preparation progress
@@ -539,7 +532,7 @@ export default function EventReadiness() {
           {showForm && (
             <form
               onSubmit={handleCreate}
-              className="space-y-4 rounded-2xl border border-[#DDE6D6] bg-white p-6"
+              className="space-y-4 rounded-2xl border border-border-soft bg-white p-6"
             >
               <h2 className="text-xl font-bold text-[#1A3F22]">
                 Add readiness task
@@ -560,7 +553,7 @@ export default function EventReadiness() {
                     }))
                   }
                   placeholder="e.g. Confirm venue"
-                  className="w-full rounded-xl border border-[#DDE6D6] px-4 py-3"
+                  className="w-full rounded-xl border border-border-soft px-4 py-3"
                 />
               </label>
 
@@ -577,7 +570,7 @@ export default function EventReadiness() {
                       description: event.target.value,
                     }))
                   }
-                  className="w-full rounded-xl border border-[#DDE6D6] px-4 py-3"
+                  className="w-full rounded-xl border border-border-soft px-4 py-3"
                 />
               </label>
 
@@ -595,7 +588,7 @@ export default function EventReadiness() {
                       deadline: event.target.value,
                     }))
                   }
-                  className="w-full rounded-xl border border-[#DDE6D6] px-4 py-3"
+                  className="w-full rounded-xl border border-border-soft px-4 py-3"
                 />
                 <span className="mt-2 block text-xs text-[#647064]">
                   Enter the deadline in your device's local timezone.
@@ -616,7 +609,7 @@ export default function EventReadiness() {
                       assignee: event.target.value,
                     }))
                   }
-                  className="w-full rounded-xl border border-[#DDE6D6] bg-white px-4 py-3 text-[#1A3F22] disabled:opacity-60"
+                  className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 text-[#1A3F22] disabled:opacity-60"
                 >
                   <option value="">Unassigned</option>
                   {teamMembers.map((member) => (
@@ -633,9 +626,7 @@ export default function EventReadiness() {
               </label>
 
               {loadingTeam && (
-                <p role="status" className="text-sm text-[#647064]">
-                  Loading event teammates...
-                </p>
+                <LoadingRow label="Loading event teammates..." className="text-sm" />
               )}
 
               {teamError && (
@@ -696,23 +687,13 @@ export default function EventReadiness() {
             </div>
 
             {loadingTasks ? (
-              <p className="flex items-center gap-2 text-[#647064]">
-                <RefreshCw size={18} className="animate-spin" />
-                Loading tasks...
-              </p>
+              <LoadingRow label="Loading tasks..." />
             ) : tasks.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#CCDCC4] bg-white p-10 text-center">
-                <Clock3
-                  className="mx-auto text-[#58761B]"
-                  size={36}
-                />
-                <h3 className="mt-4 text-lg font-bold text-[#1A3F22]">
-                  No preparation tasks yet
-                </h3>
-                <p className="mt-2 text-[#647064]">
-                  Add your first task to start tracking readiness.
-                </p>
-              </div>
+              <EmptyState
+                icon={Clock3}
+                title="No preparation tasks yet"
+                description="Add your first task to start tracking readiness."
+              />
             ) : (
               <div className="grid gap-4 lg:grid-cols-2">
                 {tasks.map((task) => (

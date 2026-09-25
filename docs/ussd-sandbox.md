@@ -29,10 +29,16 @@ allowed hostname when that happens. Stop the tunnel after testing.
   The response shows its public name, date, time, and venue.
 - An unknown event ID ends with "Published event not found."
 - Enter `8`, then `0` to check that exit works after an invalid choice.
-- Registration status and staff incident reporting currently end without revealing
-  private data or accepting a report. They require verified phone ownership;
-  staff reporting additionally requires accepted event membership and a staff PIN
-  or equivalent authentication.
+- Choose `2`, then enter the ID of an event. The response shows the registration
+  status, ticket type, and amount due for whichever Tuviora account has that
+  event registration and the caller's own phone number (Africa's Talking's
+  `phoneNumber` field, not user-typed input) saved as its SMS preference. No
+  match, in either the account or the specific event registration, ends with
+  the same generic "No registration found for this event." to avoid revealing
+  which phone numbers have a Tuviora account.
+- Staff incident reporting currently ends without accepting a report. It
+  requires accepted event membership and a staff PIN or equivalent
+  authentication.
 
 The simulator test uses a local development database. Creating a channel does
 not deploy the Django backend. Do not commit tunnel hostnames, credentials, or

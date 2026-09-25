@@ -5,6 +5,7 @@ import {
   registerForEvent,
   getMyEventRegistration,
   cancelMyEventRegistration,
+  initiateRegistrationPayment,
 } from '../lib/events'
 import { clearAttendeeReturn } from '../lib/attendeeReturn'
 import {
@@ -14,22 +15,8 @@ import {
   MapPin,
   Users,
 } from 'lucide-react'
-
-function formatDate(value) {
-  return new Intl.DateTimeFormat('en-UG', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(`${value}T12:00:00Z`))
-}
-
-function formatTime(value) {
-  if (!value) return ''
-  const [hour, minute] = value.split(':').map(Number)
-  const suffix = hour >= 12 ? 'PM' : 'AM'
-  return `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${suffix}`
-}
+import { formatEventDate, formatEventTime } from '../lib/format'
+import LoadingRow from '../components/LoadingRow'
 
 export default function PublicEventDetail() {
   const { eventId } = useParams()
@@ -39,6 +26,11 @@ export default function PublicEventDetail() {
   const [checkingSession, setCheckingSession] = useState(true)
   const [registrationError, setRegistrationError] = useState('')
   const [selectedTicketTypeId, setSelectedTicketTypeId] = useState(null)
+  const [paymentMethod, setPaymentMethod] = useState('mobile_money')
+  const [paymentPhone, setPaymentPhone] = useState('')
+  const [paymentError, setPaymentError] = useState('')
+  const [payingNow, setPayingNow] = useState(false)
+  const [polling, setPolling] = useState(false)
   const [working, setWorking] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -130,6 +122,24 @@ export default function PublicEventDetail() {
     }
   }, [eventId])
 
+  useEffect(() => {
+    if (!polling) return undefined
+
+    const interval = setInterval(async () => {
+      try {
+        const latest = await getMyEventRegistration(eventId)
+        setRegistration(latest)
+        if (latest.status !== 'payment_pending') {
+          setPolling(false)
+        }
+      } catch {
+        // Keep polling; a transient error shouldn't stop the check.
+      }
+    }, 4000)
+
+    return () => clearInterval(interval)
+  }, [polling, eventId])
+
   async function handleRegister() {
     setWorking(true)
     setRegistrationError('')
@@ -155,6 +165,29 @@ export default function PublicEventDetail() {
     }
   }
 
+  async function handlePay() {
+    setPayingNow(true)
+    setPaymentError('')
+
+    try {
+      const payment = await initiateRegistrationPayment(eventId, {
+        method: paymentMethod,
+        phoneNumber: paymentMethod === 'mobile_money' ? paymentPhone : undefined,
+      })
+
+      if (payment.redirect_url) {
+        window.location.href = payment.redirect_url
+        return
+      }
+
+      setPolling(true)
+    } catch (err) {
+      setPaymentError(err.message || 'Unable to start payment. Please try again.')
+    } finally {
+      setPayingNow(false)
+    }
+  }
+
   async function handleCancel() {
     if (!window.confirm('Cancel your registration for this event?')) {
       return
@@ -177,7 +210,7 @@ export default function PublicEventDetail() {
 
   return (
     <main className="min-h-screen bg-[#F7F9F5] text-[#1A3F22]">
-      <header className="border-b border-[#E1E8DC] bg-white px-5 py-5">
+      <header className="border-b border-border-soft bg-white px-5 py-5">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <Link to="/" className="text-2xl font-bold">
             tuviora<span className="text-[#D99201]">.</span>
@@ -202,13 +235,13 @@ export default function PublicEventDetail() {
 
       <div className="mx-auto max-w-5xl px-5 py-12">
         {loading ? (
-          <p role="status">Loading event...</p>
+          <LoadingRow label="Loading event..." />
         ) : error ? (
           <div role="alert" className="rounded-2xl bg-white p-8 text-red-700">
             {error}
           </div>
         ) : event && (
-          <div className="overflow-hidden rounded-3xl border border-[#E1E8DC] bg-white shadow-sm">
+          <div className="overflow-hidden rounded-3xl border border-border-soft bg-white shadow-sm">
             <section className="bg-[#1A3F22] px-7 py-12 text-white sm:px-12">
               <p className="text-sm font-semibold uppercase tracking-widest text-[#E9B64E]">
                 {event.category}
@@ -227,12 +260,12 @@ export default function PublicEventDetail() {
 
                 <p className="flex items-center gap-3">
                   <CalendarDays className="text-[#58761B]" />
-                  {formatDate(event.date)}
+                  {formatEventDate(event.date)}
                 </p>
 
                 <p className="flex items-center gap-3">
                   <Clock3 className="text-[#58761B]" />
-                  {formatTime(event.start_time)} – {formatTime(event.end_time)}
+                  {formatEventTime(event.start_time)} – {formatEventTime(event.end_time)}
                 </p>
 
                 <p className="flex items-center gap-3">
@@ -250,7 +283,7 @@ export default function PublicEventDetail() {
                 )}
               </div>
 
-              <div className="rounded-2xl border border-[#E1E8DC] bg-[#F7F9F5] p-7">
+              <div className="rounded-2xl border border-border-soft bg-[#F7F9F5] p-7">
                 <h2 className="text-2xl font-bold">Join this event</h2>
                 {checkingSession ? (
                   <p role="status" className="mt-4 text-[#647064]">
@@ -271,7 +304,7 @@ export default function PublicEventDetail() {
                           {event.ticket_types.map((ticket) => (
                             <label
                               key={ticket.id}
-                              className="flex items-center justify-between rounded-xl border border-[#DCE5D8] p-4"
+                              className="flex items-center justify-between rounded-xl border border-border-soft p-4"
                             >
                               <span className="flex items-center gap-3">
                                 <input
@@ -295,12 +328,68 @@ export default function PublicEventDetail() {
                       )}
 
                     {registration?.status === 'payment_pending' ? (
-                      <div
-                        role="status"
-                        className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
-                      >
-                        Your spot is reserved. Payment collection is
-                        coming soon — you'll be notified how to pay.
+                      <div className="mt-6 space-y-4">
+                        <div
+                          role="status"
+                          className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
+                        >
+                          Your spot is reserved — complete payment of{' '}
+                          {registration.amount_due} {registration.currency}{' '}
+                          to confirm it.
+                        </div>
+
+                        {polling && (
+                          <p role="status" className="text-sm text-[#647064]">
+                            Waiting for payment confirmation...
+                          </p>
+                        )}
+
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              checked={paymentMethod === 'mobile_money'}
+                              onChange={() => setPaymentMethod('mobile_money')}
+                            />
+                            Mobile Money
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              checked={paymentMethod === 'card'}
+                              onChange={() => setPaymentMethod('card')}
+                            />
+                            Card
+                          </label>
+                        </div>
+
+                        {paymentMethod === 'mobile_money' && (
+                          <input
+                            value={paymentPhone}
+                            onChange={(event) => setPaymentPhone(event.target.value)}
+                            placeholder="+256700123456"
+                            className="w-full rounded-xl border border-[#DCE5D8] bg-white px-4 py-3"
+                          />
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={handlePay}
+                          disabled={payingNow || polling}
+                          className="w-full rounded-xl bg-[#1A3F22] px-5 py-3.5 font-semibold text-white hover:bg-[#31563A] disabled:opacity-60"
+                        >
+                          {payingNow
+                            ? 'Starting payment...'
+                            : paymentMethod === 'card'
+                              ? 'Pay by card'
+                              : 'Send payment prompt'}
+                        </button>
+
+                        {paymentError && (
+                          <p role="alert" className="text-sm text-red-700">
+                            {paymentError}
+                          </p>
+                        )}
                       </div>
                     ) : registration?.status === 'confirmed' ? (
                       <>

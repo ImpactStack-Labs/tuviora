@@ -80,7 +80,7 @@ export default function VerifyEmail() {
           tuviora<span className="text-[#D99201]">.</span>
         </Link>
 
-        <section className="mt-10 rounded-3xl border border-[#E2E9DE] bg-white p-8 shadow-sm sm:p-10">
+        <section className="mt-10 rounded-3xl border border-border-soft bg-white p-8 shadow-sm sm:p-10">
           <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#EDF3E8] text-[#58761B]">
             {status === 'verified'
               ? <CheckCircle2 size={30} />
@@ -95,7 +95,7 @@ export default function VerifyEmail() {
 
           {status === 'verified' ? (
             <>
-              <p className="mt-4 leading-7 text-[#647365]">
+              <p className="mt-4 leading-7 text-text-muted">
                 Your Tuviora account is now active.
                 Continue to your invitation or sign in to your account.
               </p>
@@ -111,7 +111,7 @@ export default function VerifyEmail() {
             </>
           ) : (
             <>
-              <p className="mt-4 leading-7 text-[#647365]">
+              <p className="mt-4 leading-7 text-text-muted">
                 {status === 'missing'
                   ? 'This verification link is missing its token.'
                   : status === 'working'

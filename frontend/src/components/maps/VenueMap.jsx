@@ -82,7 +82,6 @@ export default function VenueMap({
         zoom={12}
         scrollWheelZoom={false}
         className="h-80 w-full"
-        style={{ minHeight: 320 }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
