@@ -8,6 +8,7 @@ import { AlertTriangle,
   Radio,
   MessageSquare,
   BarChart3,
+  Wallet,
 } from 'lucide-react'
 
 export const navigation = [
@@ -18,6 +19,7 @@ export const navigation = [
   { name: 'Registration', path: 'registration', icon: Users },
   { name: 'Attendance', path: 'attendance', icon: ScanLine },
   { name: 'Payments', path: 'payments', icon: CreditCard },
+  { name: 'Budget', path: 'budget', icon: Wallet },
   { name: 'Live Operations', path: 'live', icon: Radio },
   { name: 'Incident Management', path: 'incidents', icon: AlertTriangle },
   { name: 'Communications', path: 'communications', icon: MessageSquare },
