@@ -436,6 +436,12 @@ class Feedback(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["event", "attendee"],
+                name="unique_event_attendee_feedback",
+            ),
+        ]
 
     def __str__(self):
         return f"Feedback for {self.event.name}"

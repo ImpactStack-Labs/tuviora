@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
@@ -94,3 +95,19 @@ class FeedbackPermissionTests(APITestCase):
         response = self.client.get(me_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["rating"], 2)
+
+    def test_duplicate_feedback_row_is_rejected_by_db_constraint(self):
+        Feedback.objects.create(event=self.event, attendee=self.attendee, rating=3)
+
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Feedback.objects.create(
+                    event=self.event, attendee=self.attendee, rating=4,
+                )
+
+        self.assertEqual(
+            Feedback.objects.filter(
+                event=self.event, attendee=self.attendee,
+            ).count(),
+            1,
+        )
