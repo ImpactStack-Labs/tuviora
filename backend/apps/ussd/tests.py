@@ -4,7 +4,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from apps.events.models import Event
+from apps.accounts.models import SMSPreference
+from apps.events.models import Event, EventRegistration, TicketType
 
 
 class USSDCallbackTests(TestCase):
@@ -53,6 +54,106 @@ class USSDCallbackTests(TestCase):
     def test_unknown_event_is_not_disclosed(self):
         response = self.send("1*999999")
         self.assertEqual(response.content.decode(), "END Published event not found.")
+
+    def test_registration_prompt_uses_con(self):
+        response = self.send("2")
+        self.assertIn("CON Enter the event ID", response.content.decode())
+
+    def test_registration_details_for_linked_phone(self):
+        organizer = get_user_model().objects.create_user(username="organizer")
+        attendee = get_user_model().objects.create_user(username="attendee")
+        SMSPreference.objects.create(
+            user=attendee,
+            phone_number="+256712345678",
+            sms_enabled=False,
+        )
+        event = Event.objects.create(
+            organizer=organizer,
+            name="Tuviora Summit",
+            category=Event.Category.CONFERENCE,
+            date=date(2026, 9, 26),
+            start_time=time(9, 0),
+            end_time=time(17, 0),
+            venue="Kampala",
+            status=Event.Status.PUBLISHED,
+        )
+        ticket_type = TicketType.objects.create(
+            event=event, name="VIP", price=50000, currency="UGX"
+        )
+        EventRegistration.objects.create(
+            event=event,
+            user=attendee,
+            ticket_type=ticket_type,
+            amount_due=50000,
+            currency="UGX",
+            status=EventRegistration.Status.CONFIRMED,
+        )
+
+        response = self.send(f"2*{event.pk}")
+        body = response.content.decode()
+        self.assertTrue(body.startswith("END "))
+        self.assertIn("Tuviora Summit", body)
+        self.assertIn("Confirmed", body)
+        self.assertIn("VIP ticket", body)
+        self.assertIn("50000.00 UGX due", body)
+
+    def test_registration_not_found_for_unlinked_phone(self):
+        organizer = get_user_model().objects.create_user(username="organizer")
+        event = Event.objects.create(
+            organizer=organizer,
+            name="Tuviora Summit",
+            category=Event.Category.CONFERENCE,
+            date=date(2026, 9, 26),
+            start_time=time(9, 0),
+            end_time=time(17, 0),
+            venue="Kampala",
+            status=Event.Status.PUBLISHED,
+        )
+
+        response = self.send(f"2*{event.pk}")
+        self.assertEqual(
+            response.content.decode(),
+            "END No registration found for this event.",
+        )
+
+    def test_registration_not_found_for_other_event(self):
+        organizer = get_user_model().objects.create_user(username="organizer")
+        attendee = get_user_model().objects.create_user(username="attendee")
+        SMSPreference.objects.create(
+            user=attendee, phone_number="+256712345678", sms_enabled=False
+        )
+        registered_event = Event.objects.create(
+            organizer=organizer,
+            name="Tuviora Summit",
+            category=Event.Category.CONFERENCE,
+            date=date(2026, 9, 26),
+            start_time=time(9, 0),
+            end_time=time(17, 0),
+            status=Event.Status.PUBLISHED,
+        )
+        other_event = Event.objects.create(
+            organizer=organizer,
+            name="Tech Meetup",
+            category=Event.Category.CONFERENCE,
+            date=date(2026, 10, 1),
+            start_time=time(9, 0),
+            end_time=time(17, 0),
+            status=Event.Status.PUBLISHED,
+        )
+        EventRegistration.objects.create(event=registered_event, user=attendee)
+
+        response = self.send(f"2*{other_event.pk}")
+        self.assertEqual(
+            response.content.decode(),
+            "END No registration found for this event.",
+        )
+
+    def test_invalid_registration_event_id(self):
+        response = self.send("2*abc")
+        self.assertEqual(
+            response.content.decode(),
+            "END Invalid event ID. Please dial again.",
+        )
 
     def test_invalid_menu_choice(self):
         response = self.send("8")
