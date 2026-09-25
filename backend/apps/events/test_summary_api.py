@@ -112,6 +112,19 @@ class SummaryAPITests(APITestCase):
         )
         self.assertEqual(data["feedback"], {"average_rating": 4.0, "count": 2})
 
+    def test_check_in_on_cancelled_registration_is_not_counted(self):
+        confirmed = self.register("a", EventRegistration.Status.CONFIRMED)
+        cancelled = self.register("b", EventRegistration.Status.CANCELLED)
+        RegistrationTicket.objects.create(registration=confirmed, checked_in_at=timezone.now())
+        RegistrationTicket.objects.create(registration=cancelled, checked_in_at=timezone.now())
+
+        self.client.force_authenticate(user=self.organizer)
+        data = self.client.get(self.url).data
+
+        self.assertEqual(
+            data["attendance"], {"checked_in": 1, "confirmed": 1, "rate": 1.0},
+        )
+
     def test_payments_list_is_organizer_only(self):
         paid = self.register("a", EventRegistration.Status.CONFIRMED, amount=Decimal("1000"))
         Payment.objects.create(

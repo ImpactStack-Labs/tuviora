@@ -37,6 +37,7 @@ def event_summary(event):
 
     checked_in = RegistrationTicket.objects.filter(
         registration__event=event,
+        registration__status=EventRegistration.Status.CONFIRMED,
         checked_in_at__isnull=False,
     ).count()
 

@@ -1,4 +1,5 @@
 from datetime import timedelta
+from io import StringIO
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -115,8 +116,8 @@ class ReminderCommandTests(APITestCase):
             status=EventRegistration.Status.CONFIRMED,
         )
 
-        call_command("send_event_reminders")
-        call_command("send_event_reminders")
+        call_command("send_event_reminders", stdout=StringIO())
+        call_command("send_event_reminders", stdout=StringIO())
 
         send.assert_called_once()
         user_ids, message = send.call_args.args

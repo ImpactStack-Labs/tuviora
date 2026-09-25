@@ -76,6 +76,7 @@ class IncidentCallTeamAPITests(APITestCase):
             },
         )
 
+    @override_settings(VOICE_CRITICAL_CALLS_ENABLED=False)
     def test_disabled_flag_returns_503(self):
         self.client.force_authenticate(self.organizer)
 
