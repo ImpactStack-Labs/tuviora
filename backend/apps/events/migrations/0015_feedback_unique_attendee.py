@@ -4,6 +4,24 @@ from django.conf import settings
 from django.db import migrations, models
 
 
+def dedupe_feedback(apps, schema_editor):
+    """Keep only the newest feedback per (event, attendee) before the constraint."""
+    Feedback = apps.get_model("events", "Feedback")
+    seen = set()
+    stale = []
+    rows = (
+        Feedback.objects.filter(attendee__isnull=False)
+        .order_by("event_id", "attendee_id", "-updated_at", "-id")
+        .values_list("id", "event_id", "attendee_id")
+    )
+    for pk, event_id, attendee_id in rows.iterator():
+        if (event_id, attendee_id) in seen:
+            stale.append(pk)
+        else:
+            seen.add((event_id, attendee_id))
+    Feedback.objects.filter(pk__in=stale).delete()
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -12,6 +30,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(dedupe_feedback, migrations.RunPython.noop),
         migrations.AddConstraint(
             model_name='feedback',
             constraint=models.UniqueConstraint(fields=('event', 'attendee'), name='unique_event_attendee_feedback'),
