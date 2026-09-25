@@ -26,6 +26,10 @@ class InvitationCreateSerializer(serializers.Serializer):
     )
 
 
+class TeamMessageSerializer(serializers.Serializer):
+    message = serializers.CharField(max_length=480, trim_whitespace=True)
+
+
 class EventTeamView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -351,12 +355,8 @@ class MessageTeamView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        message = str(request.data.get("message", "")).strip()
-
-        if not message:
-            return Response(
-                {"detail": "A non-empty message is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        serializer = TeamMessageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        message = serializer.validated_data["message"]
 
         return Response(send_team_sms(event, message))

@@ -39,6 +39,7 @@ def _send_sms_to_users(user_ids, message):
     submitted = 0
     failed = 0
 
+    # ponytail: sequential in-request fan-out, fine for team-sized lists; queue it if teams grow
     for preference in preferences:
         try:
             send_sms(

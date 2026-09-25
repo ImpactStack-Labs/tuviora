@@ -180,8 +180,9 @@ export default function EventTeam() {
       )
       setTeamMessage('')
       setNotice(
-        `Message sent to ${result.submitted} team member`
-        + `${result.submitted === 1 ? '' : 's'}.`,
+        result.submitted === 0
+          ? `No team members were reached (${result.failed} failed, ${result.skipped} without SMS consent or a phone number).`
+          : `Sent to ${result.submitted}. ${result.failed} failed, ${result.skipped} skipped.`,
       )
     } catch (err) {
       setError(formatApiError(err))
@@ -280,6 +281,8 @@ export default function EventTeam() {
             onChange={(event) => setTeamMessage(event.target.value)}
             placeholder="Type a message for the team..."
             rows={2}
+            maxLength={480}
+            aria-label="Message to team"
             className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 outline-none focus:border-[#58761B]"
           />
           <button
