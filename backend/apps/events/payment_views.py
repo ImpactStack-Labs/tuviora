@@ -1,7 +1,8 @@
 import uuid
 
 from django.conf import settings
-from django.shortcuts import get_object_or_404
+from django.db import transaction
+from django.http import Http404
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -17,52 +18,59 @@ class InitiateRegistrationPaymentView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, event_id):
-        registration = get_object_or_404(
-            EventRegistration,
-            event_id=event_id,
-            user=request.user,
-        )
-
-        if registration.status != EventRegistration.Status.PAYMENT_PENDING:
-            return Response(
-                {"detail": "No payment is due for this registration."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        method = request.data.get("method", "mobile_money")
-
-        if method not in (
-            Payment.Method.MOBILE_MONEY,
-            Payment.Method.CARD,
-        ):
-            return Response(
-                {"detail": "Choose a supported payment method."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        phone_number = ""
-
-        if method == Payment.Method.MOBILE_MONEY:
+        # Lock the registration row for the status check + Payment creation
+        # so two concurrent requests can't both pass the PAYMENT_PENDING
+        # check and each fire a separate MarzPay collection. The lock is
+        # released when this block commits, *before* the network call below.
+        with transaction.atomic():
             try:
-                phone_number = validate_phone_number(
-                    request.data.get("phone_number", "")
+                registration = EventRegistration.objects.select_for_update().get(
+                    event_id=event_id,
+                    user=request.user,
                 )
-            except ValueError as exc:
+            except EventRegistration.DoesNotExist:
+                raise Http404("No registration matches the given query.")
+
+            if registration.status != EventRegistration.Status.PAYMENT_PENDING:
                 return Response(
-                    {"detail": str(exc)},
+                    {"detail": "No payment is due for this registration."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        reference = str(uuid.uuid4())
+            method = request.data.get("method", "mobile_money")
 
-        payment = Payment.objects.create(
-            registration=registration,
-            reference=reference,
-            method=method,
-            phone_number=phone_number,
-            amount=registration.amount_due,
-            currency=registration.currency,
-        )
+            if method not in (
+                Payment.Method.MOBILE_MONEY,
+                Payment.Method.CARD,
+            ):
+                return Response(
+                    {"detail": "Choose a supported payment method."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            phone_number = ""
+
+            if method == Payment.Method.MOBILE_MONEY:
+                try:
+                    phone_number = validate_phone_number(
+                        request.data.get("phone_number", "")
+                    )
+                except ValueError as exc:
+                    return Response(
+                        {"detail": str(exc)},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            reference = str(uuid.uuid4())
+
+            payment = Payment.objects.create(
+                registration=registration,
+                reference=reference,
+                method=method,
+                phone_number=phone_number,
+                amount=registration.amount_due,
+                currency=registration.currency,
+            )
 
         try:
             data = initiate_collection(
@@ -86,10 +94,10 @@ class InitiateRegistrationPaymentView(APIView):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
-        transaction = data.get("transaction", {})
-        payment.provider_transaction_id = transaction.get("uuid", "")
+        provider_transaction = data.get("transaction", {})
+        payment.provider_transaction_id = provider_transaction.get("uuid", "")
         payment.status = (
-            transaction.get("status") or Payment.Status.PROCESSING
+            provider_transaction.get("status") or Payment.Status.PROCESSING
         )
         payment.redirect_url = data.get("redirect_url", "")
         payment.raw_response = data

@@ -179,3 +179,32 @@ class InitiatePaymentAPITests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch("apps.events.payment_views.initiate_collection")
+    def test_initiate_payment_locks_the_registration_row(self, mock_initiate):
+        # Regression test for the check-then-create race: two concurrent
+        # POSTs could both read PAYMENT_PENDING before either created a
+        # Payment, firing two MarzPay collections for one registration.
+        # The test DB here is sqlite, which doesn't enforce row-level
+        # locking (Django silently drops the FOR UPDATE clause), so a
+        # genuine multi-threaded race can't be demonstrated reliably
+        # against it. Instead we assert the view takes the lock at all,
+        # by wrapping (not replacing) select_for_update so real behaviour
+        # is preserved and we just observe that it was used.
+        mock_initiate.return_value = {
+            "transaction": {"uuid": "lock-test", "status": "processing"},
+        }
+
+        with patch.object(
+            EventRegistration.objects,
+            "select_for_update",
+            wraps=EventRegistration.objects.select_for_update,
+        ) as mock_select_for_update:
+            response = self.client.post(
+                self.pay_url,
+                {"method": "mobile_money", "phone_number": "+256700123456"},
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        mock_select_for_update.assert_called_once()
+        self.assertEqual(Payment.objects.count(), 1)
