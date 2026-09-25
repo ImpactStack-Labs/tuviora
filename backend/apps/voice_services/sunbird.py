@@ -3,10 +3,6 @@
 import os
 
 import requests
-from dotenv import load_dotenv
-
-
-load_dotenv()
 
 SUNBIRD_SPEECH_URL = (
     "https://api.sunbird.ai/tasks/audio/speech"

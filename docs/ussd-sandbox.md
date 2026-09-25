@@ -12,8 +12,9 @@ From the repository root, activate the Python virtual environment, then run:
     python backend/manage.py runserver 127.0.0.1:8000
 
 For an external sandbox test, expose port 8000 through a temporary HTTPS tunnel.
-Allow only that tunnel's hostname in Django's `ALLOWED_HOSTS` for the test, and
-keep `DEBUG` off while the tunnel is public. In Africa's Talking sandbox, create
+Set `DJANGO_ALLOWED_HOSTS` in `backend/.env` to only that tunnel's hostname for
+the test, and keep `DEBUG` off (`DJANGO_DEBUG=False`, which requires
+`DJANGO_SECRET_KEY`) while the tunnel is public. In Africa's Talking sandbox, create
 a USSD channel on the shared `*384#` code. Set its Callback URL to:
 
     https://YOUR-TUNNEL-HOST/api/ussd/callback/

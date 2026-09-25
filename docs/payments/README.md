@@ -10,36 +10,40 @@ status and date against the attendee's registration.
 
 ## Status
 
-**Not yet implemented.** The full task-by-task build plan lives at
-[`docs/superpowers/plans/2026-09-24-marzpay-payments.md`](../superpowers/plans/2026-09-24-marzpay-payments.md)
-and depends on ticket types/pricing
-([`docs/superpowers/plans/2026-09-24-ticket-types-pricing.md`](../superpowers/plans/2026-09-24-ticket-types-pricing.md))
-landing first. This document describes the intended integration; treat
-any endpoint or model below as planned until that plan is executed.
+**Implemented; not yet live-tested against MarzPay.** The `Payment`
+model, the initiate endpoint, the signed webhook, `apps/events/services/marzpay_service.py`
+and ticket types with prices are all in place and covered by automated
+tests (`test_payments_api.py`, `test_marzpay_service.py`) with MarzPay
+mocked. The original build plans are in
+[`docs/superpowers/plans/`](../superpowers/plans/).
 
-## How it will work
+Before going live, run a sandbox collection end to end and confirm the
+webhook reaches a publicly reachable `MARZPAY_CALLBACK_URL`.
+
+## How it works
 
 1. An attendee with a `payment_pending` registration chooses Mobile
    Money or Card and calls
-   `POST /api/events/<event_id>/registrations/me/pay/`.
-2. Tuviora creates a `Payment` row (`pending`) and calls MarzPay's
-   `/collect-money` endpoint — a Mobile Money push to the attendee's
-   phone, or a card redirect URL.
+   `POST /api/events/<event_id>/registrations/me/pay/` with `method`
+   (`mobile_money` or `card`) and, for Mobile Money, `phone_number`.
+2. Tuviora creates a `pending` `Payment` row and calls MarzPay's
+   `/collect-money` endpoint. This sends a Mobile Money prompt to the
+   attendee's phone, or returns a card checkout URL. A second request
+   while a payment is in progress is rejected.
 3. MarzPay processes the payment asynchronously and calls Tuviora's
-   webhook, `POST /api/payments/marzpay/webhook/`, once the collection
-   reaches a final state (`completed`, `failed` or `cancelled`).
-4. The webhook verifies MarzPay's `X-MarzPay-Signature` HMAC-SHA256
-   header, updates the `Payment` status, and — only on
-   `collection.completed` — flips the `EventRegistration` from
-   `payment_pending` to `confirmed` and sends the confirmation SMS.
+   webhook, `POST /api/payments/marzpay/webhook/`.
+4. The webhook verifies the `X-MarzPay-Signature` HMAC-SHA256 header
+   (with `X-MarzPay-Timestamp`) and updates the `Payment` status. Only on
+   `collection.completed` does it move the `EventRegistration` from
+   `payment_pending` to `confirmed` and send the confirmation SMS.
+   Webhooks for unknown references are acknowledged and ignored.
 
-Registration is only ever confirmed from the webhook, never from the
-initiate call, since Mobile Money collections do not complete
-synchronously.
+A registration is confirmed only by the webhook, never by the initiate
+call, because Mobile Money collections do not complete synchronously.
 
 ## Configuration
 
-Set these variables in `backend/.env` (see `.env.example`):
+Set these variables in `backend/.env` (copy from the root `.env.example`):
 
     MARZPAY_BASE_URL=https://wallet.wearemarz.com/api/v1
     MARZPAY_API_KEY=

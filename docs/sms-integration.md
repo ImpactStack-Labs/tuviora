@@ -4,7 +4,7 @@ Tuviora uses Africa's Talking for SMS notifications.
 
 ## Configuration
 
-Set these variables in backend/.env:
+Set these variables in `backend/.env` (copy from the root `.env.example`):
 
     SMS_ENABLED=false
     AFRICASTALKING_USERNAME=sandbox
@@ -47,6 +47,15 @@ Import send_team_sms from the same module to message an
 event's organizer and every accepted team member. Supply
 the event and a message; it resolves recipients from
 EventMembership internally, so callers do not pass user IDs.
+Organizers and managers reach it through
+`POST /api/events/<event_id>/team/message/`.
+
+## Other SMS triggers
+
+- Payment confirmation, sent when the MarzPay webhook confirms a
+  registration.
+
+(Readiness task assignments are notified by email, not SMS.)
 
 ## Sandbox testing
 
@@ -66,7 +75,7 @@ External SMS requests are mocked in automated tests.
 ## Pending integration
 
 Event reminders, organizer-approved announcements and
-targeted incident updates require the attendee registration
-API contract.
+targeted incident updates are not built yet. The attendee
+registration API they depend on now exists.
 
 Incident notifications must reach only affected attendees.

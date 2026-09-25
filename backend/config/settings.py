@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -23,13 +24,27 @@ load_dotenv(BASE_DIR / '.env')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-vzi41+%m_l*41ki5*u7^upd-)_w90y)16avq)^8)fc=ty32a+#'
+# Debug is off unless backend/.env sets DJANGO_DEBUG=True.
+DEBUG = os.getenv("DJANGO_DEBUG", "false").strip().lower() == "true"
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "").strip()
 
-ALLOWED_HOSTS = []
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured(
+            "Set DJANGO_SECRET_KEY in backend/.env "
+            "(or DJANGO_DEBUG=True for local development)."
+        )
+    # Local development only; never used when DEBUG is off.
+    SECRET_KEY = "django-insecure-local-development-only"
+
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv(
+        "DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1"
+    ).split(",")
+    if host.strip()
+]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
