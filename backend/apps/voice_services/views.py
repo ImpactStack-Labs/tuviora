@@ -5,12 +5,14 @@ from xml.etree.ElementTree import Element, SubElement, tostring
 from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from .events import describe_event, get_public_event
 from .languages import LANGUAGES, LANGUAGE_SELECTION
 from .menus import get_message
+from .models import PendingVoiceCall
 
 
 SESSION_TIMEOUT = 3600
@@ -50,10 +52,41 @@ def callback_url(request):
     return request.build_absolute_uri(request.path)
 
 
+def _handle_outbound_callback(request):
+    """Speak the message queued for this outbound call, then hang up.
+
+    Africa's Talking's outbound-call callback payload is expected to
+    include `destinationNumber` — verify this field name against a real
+    sandbox call if it ever stops matching.
+    """
+    phone_number = request.POST.get("destinationNumber", "").strip()
+
+    pending = (
+        PendingVoiceCall.objects
+        .filter(
+            phone_number=phone_number,
+            expires_at__gt=timezone.now(),
+        )
+        .order_by("-created_at")
+        .first()
+    )
+
+    if pending is None:
+        return voice_response("Goodbye.", finish=True)
+
+    message = pending.message
+    pending.delete()
+
+    return voice_response(message, finish=True)
+
+
 @csrf_exempt
 @require_POST
 def voice_callback(request):
     """Handle incoming calls and subsequent keypad selections."""
+    if request.POST.get("direction", "") == "Outbound":
+        return _handle_outbound_callback(request)
+
     session_id = request.POST.get("sessionId", "").strip()
     digits = request.POST.get("dtmfDigits", "").strip()
 
