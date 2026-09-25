@@ -82,3 +82,25 @@ class ConferenceAccessCode(models.Model):
 
     def __str__(self):
         return f"Conference access for user {self.user_id}"
+
+
+class PendingVoiceCall(models.Model):
+    """Transient routing state linking an outbound call to its message.
+
+    Not an audit log: one row per outstanding call attempt, written when
+    we dial and deleted when the matching outbound callback claims it.
+    A row nobody ever answers is simply ignored once expires_at passes.
+    """
+
+    phone_number = models.CharField(max_length=20)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["phone_number", "expires_at"]),
+        ]
+
+    def __str__(self):
+        return f"Pending call to {self.phone_number}"
