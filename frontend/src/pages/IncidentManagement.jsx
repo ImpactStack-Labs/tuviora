@@ -3,6 +3,7 @@ import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { apiRequest } from '../lib/auth'
 import { getEvents } from '../lib/events'
 import { callTeamForIncident } from '../lib/team'
+import IncidentReportForm from '../components/IncidentReportForm'
 
 const STATUSES = [
   ['open', 'Open'],
@@ -136,7 +137,7 @@ export default function IncidentManagement() {
             Incident Management
           </h1>
           <p className="mt-2 text-[#647064]">
-            Review problems reported by your event team.
+            Report problems and review those raised by your event team.
           </p>
         </div>
 
@@ -189,6 +190,21 @@ export default function IncidentManagement() {
             {openCount} active incident{openCount === 1 ? '' : 's'}
           </p>
         </div>
+      </section>
+
+      <section className="rounded-2xl border border-[#E3E9DF] bg-white p-6">
+        <h2 className="text-2xl font-bold">Report an incident</h2>
+        <p className="mt-2 text-sm text-[#647064]">
+          Log a problem affecting the selected event.
+        </p>
+        <IncidentReportForm
+          eventId={eventId}
+          onError={setError}
+          onCreated={(created) => {
+            setIncidents((current) => [created, ...current])
+            setNotice('Incident reported.')
+          }}
+        />
       </section>
 
       {loading ? (
