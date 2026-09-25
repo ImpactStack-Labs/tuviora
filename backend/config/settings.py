@@ -250,3 +250,9 @@ VOICE_CONFERENCE_ENABLED = (
 VOICE_CONFERENCE_MAX_PARTICIPANTS = int(
     os.getenv("VOICE_CONFERENCE_MAX_PARTICIPANTS", "20")
 )
+
+# Critical-incident voice call escalation (organizer + managers only)
+VOICE_CRITICAL_CALLS_ENABLED = (
+    os.getenv("VOICE_CRITICAL_CALLS_ENABLED", "false").lower()
+    == "true"
+)

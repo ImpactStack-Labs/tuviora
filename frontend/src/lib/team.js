@@ -35,3 +35,10 @@ export function sendTeamMessage(eventId, message) {
     body: JSON.stringify({ message }),
   })
 }
+
+export function callTeamForIncident(eventId, incidentId) {
+  return apiRequest(
+    `/api/voice/events/${eventId}/incidents/${incidentId}/call-team/`,
+    { method: 'POST' },
+  )
+}

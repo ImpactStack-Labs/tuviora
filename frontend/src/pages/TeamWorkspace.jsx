@@ -7,6 +7,7 @@ import {
   Users,
 } from 'lucide-react'
 import { apiRequest, logoutOrganizer } from '../lib/auth'
+import { callTeamForIncident } from '../lib/team'
 import StatCard from '../components/StatCard'
 import EmptyState from '../components/EmptyState'
 import LoadingRow from '../components/LoadingRow'
@@ -39,6 +40,7 @@ export default function TeamWorkspace({ user, onLogout }) {
   const [incidentSeverity, setIncidentSeverity] = useState('medium')
   const [submittingIncident, setSubmittingIncident] = useState(false)
   const [updatingIncidentId, setUpdatingIncidentId] = useState(null)
+  const [callingIncidentId, setCallingIncidentId] = useState(null)
   const [loading, setLoading] = useState(false)
   const [savingTaskId, setSavingTaskId] = useState(null)
   const [error, setError] = useState('')
@@ -181,6 +183,30 @@ export default function TeamWorkspace({ user, onLogout }) {
       setError(err.message)
     } finally {
       setUpdatingIncidentId(null)
+    }
+  }
+
+  async function handleCallTeam(incident) {
+    if (callingIncidentId !== null) return
+
+    setCallingIncidentId(incident.id)
+    setError('')
+    setNotice('')
+
+    try {
+      const result = await callTeamForIncident(
+        selectedEventId,
+        incident.id,
+      )
+      setNotice(
+        result.dialed === 0
+          ? `No team members were reached (${result.failed} failed, ${result.skipped} without a phone number).`
+          : `Called ${result.dialed} team member${result.dialed === 1 ? '' : 's'}. ${result.failed} failed, ${result.skipped} skipped.`,
+      )
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setCallingIncidentId(null)
     }
   }
 
@@ -500,29 +526,46 @@ export default function TeamWorkspace({ user, onLogout }) {
                   </p>
 
                   {selectedMembership?.role === 'manager' && (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {[
-                        ['open', 'Open'],
-                        ['in_progress', 'In progress'],
-                        ['resolved', 'Resolved'],
-                        ['closed', 'Closed'],
-                      ].map(([value, label]) => (
-                        <button
-                          key={value}
-                          type="button"
-                          disabled={
-                            updatingIncidentId !== null ||
-                            incident.status === value
-                          }
-                          onClick={() =>
-                            updateIncidentStatus(incident, value)
-                          }
-                          className="rounded-lg border border-[#DDE6D6] px-3 py-2 text-sm font-semibold disabled:opacity-50"
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
+                    <>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {[
+                          ['open', 'Open'],
+                          ['in_progress', 'In progress'],
+                          ['resolved', 'Resolved'],
+                          ['closed', 'Closed'],
+                        ].map(([value, label]) => (
+                          <button
+                            key={value}
+                            type="button"
+                            disabled={
+                              updatingIncidentId !== null ||
+                              incident.status === value
+                            }
+                            onClick={() =>
+                              updateIncidentStatus(incident, value)
+                            }
+                            className="rounded-lg border border-[#DDE6D6] px-3 py-2 text-sm font-semibold disabled:opacity-50"
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {incident.severity === 'critical' && (
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            disabled={callingIncidentId !== null}
+                            onClick={() => handleCallTeam(incident)}
+                            className="rounded-lg bg-[#B42318] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                          >
+                            {callingIncidentId === incident.id
+                              ? 'Calling...'
+                              : 'Call the team'}
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </article>
               ))}
