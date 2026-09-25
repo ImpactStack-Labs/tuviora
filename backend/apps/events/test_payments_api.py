@@ -399,3 +399,28 @@ class MarzPayWebhookAPITests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    @patch("apps.events.payment_views.send_event_sms")
+    def test_duplicate_webhook_delivery_confirms_and_sms_once(
+        self, mock_send_sms
+    ):
+        payload = {
+            "event_type": "collection.completed",
+            "transaction": {
+                "uuid": "provider-uuid-4",
+                "reference": "webhook-ref-1",
+                "status": "completed",
+            },
+        }
+
+        first_response = self._post_signed(payload)
+        second_response = self._post_signed(payload)
+
+        self.assertEqual(first_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(second_response.status_code, status.HTTP_200_OK)
+
+        self.registration.refresh_from_db()
+        self.assertEqual(
+            self.registration.status, EventRegistration.Status.CONFIRMED
+        )
+        self.assertEqual(mock_send_sms.call_count, 1)

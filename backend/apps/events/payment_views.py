@@ -206,7 +206,14 @@ class MarzPayWebhookView(APIView):
             )
 
             if event_type == "collection.completed":
-                registration = payment.registration
+                # Lock the registration row too: it's a different table from
+                # Payment, so without this a concurrent
+                # InitiateRegistrationPaymentView call touching the same
+                # registration through another Payment row would never
+                # contend with this transaction's Payment-row lock.
+                registration = EventRegistration.objects.select_for_update().get(
+                    pk=payment.registration_id
+                )
                 if (
                     registration.status
                     == EventRegistration.Status.PAYMENT_PENDING
