@@ -16,6 +16,7 @@ export default function PaymentsPage() {
   const [filter, setFilter] = useState('all')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [paymentsNote, setPaymentsNote] = useState('')
 
   useEffect(() => {
     if (!event) return
@@ -25,15 +26,27 @@ export default function PaymentsPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     setError('')
+    setPaymentsNote('')
 
-    Promise.all([getEventSummary(event.id), getEventPayments(event.id)])
-      .then(([s, p]) => {
-        if (!active) return
-        setSummary(s)
-        setPayments(p)
-      })
+    // Loaded independently: a manager can view the summary but gets a 403 on
+    // the organizer-only payments list, and that 403 must not blank the
+    // summary or surface the generic "session expired" text.
+    const summaryDone = getEventSummary(event.id)
+      .then((s) => { if (active) setSummary(s) })
       .catch((err) => { if (active) setError(formatApiError(err)) })
-      .finally(() => { if (active) setLoading(false) })
+
+    const paymentsDone = getEventPayments(event.id)
+      .then((p) => { if (active) setPayments(p) })
+      .catch((err) => {
+        if (!active) return
+        if (err.status === 403) {
+          setPaymentsNote('Only the event organizer can view individual payments.')
+        } else {
+          setError(formatApiError(err))
+        }
+      })
+
+    Promise.all([summaryDone, paymentsDone]).finally(() => { if (active) setLoading(false) })
 
     return () => { active = false }
   }, [event])
@@ -81,8 +94,9 @@ export default function PaymentsPage() {
                 {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
-            {!shown.length && <p className="mt-4 text-sm text-text-muted">No payments.</p>}
-            {shown.length > 0 && (
+            {paymentsNote && <p className="mt-4 text-sm text-text-muted">{paymentsNote}</p>}
+            {!paymentsNote && !shown.length && <p className="mt-4 text-sm text-text-muted">No payments.</p>}
+            {!paymentsNote && shown.length > 0 && (
               <div className="mt-4 overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead className="text-text-muted">

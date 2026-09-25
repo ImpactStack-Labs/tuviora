@@ -108,7 +108,7 @@ export default function BudgetPage() {
               ['Net', money(summary.budget.net)],
               ['Unpaid vendors', money(summary.budget.unpaid)],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-2xl border border-border-soft bg-white p-5 shadow-sm">
+              <div key={label} className="rounded-2xl border border-border-soft bg-white p-5 shadow-sm sm:p-6">
                 <p className="text-sm text-text-muted">{label}</p>
                 <p className={`mt-2 text-2xl font-bold ${label === 'Net' && net < 0 ? 'text-red-700' : 'text-[#1A3F22]'}`}>
                   {value}
@@ -128,7 +128,7 @@ export default function BudgetPage() {
               <input aria-label="Vendor" placeholder="Vendor (optional)" value={draft.vendor} onChange={(e) => setDraft({ ...draft, vendor: e.target.value })} className={INPUT} />
               <input aria-label="Planned amount" required type="number" min="0" step="0.01" placeholder="Planned" value={draft.planned_amount} onChange={(e) => setDraft({ ...draft, planned_amount: e.target.value })} className={INPUT} />
               <input aria-label="Actual amount" type="number" min="0" step="0.01" placeholder="Actual" value={draft.actual_amount} onChange={(e) => setDraft({ ...draft, actual_amount: e.target.value })} className={INPUT} />
-              <button type="submit" disabled={saving} className="rounded-xl bg-[#58761B] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+              <button type="submit" disabled={saving} className="rounded-xl bg-[#58761B] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">
                 Add
               </button>
             </form>
