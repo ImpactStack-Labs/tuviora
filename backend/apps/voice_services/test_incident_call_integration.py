@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from apps.events.models import Event, EventMembership, Incident
+from apps.events.models import Event, Incident
 from apps.sms.models import SMSPreference
 
 from .incident_calls import call_team_for_incident
