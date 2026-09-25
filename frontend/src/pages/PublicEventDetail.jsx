@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { formatEventDate, formatEventTime } from '../lib/format'
 import LoadingRow from '../components/LoadingRow'
+import RegistrationTicket from '../components/RegistrationTicket'
 
 export default function PublicEventDetail() {
   const { eventId } = useParams()
@@ -399,6 +400,8 @@ export default function PublicEventDetail() {
                         >
                           Your registration is confirmed.
                         </div>
+
+                        <RegistrationTicket eventId={eventId} />
 
                         <button
                           type="button"
