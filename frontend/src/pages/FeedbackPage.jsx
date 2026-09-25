@@ -30,7 +30,10 @@ export default function FeedbackPage() {
 
     Promise.all([
       getEventFeedback(event.id),
-      getFeedbackAnalysis(event.id).catch(() => null), // 404: none yet
+      getFeedbackAnalysis(event.id).catch((err) => {
+        if (err.status === 404) return null
+        throw err
+      }),
     ])
       .then(([items, existing]) => {
         if (!active) return

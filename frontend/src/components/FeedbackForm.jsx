@@ -17,7 +17,10 @@ export default function FeedbackForm({ eventId }) {
         setRating(data.rating)
         setComment(data.comment || '')
       })
-      .catch(() => {}) // 404: no feedback yet
+      .catch((err) => {
+        if (!active) return
+        if (err.status !== 404) setMessage(formatApiError(err)) // 404: no feedback yet
+      })
     return () => { active = false }
   }, [eventId])
 
@@ -38,13 +41,12 @@ export default function FeedbackForm({ eventId }) {
   return (
     <form onSubmit={handleSubmit} className="mt-6 border-t border-border-soft pt-5">
       <p className="text-sm font-semibold">Rate this event</p>
-      <div className="mt-2 flex gap-1" role="radiogroup" aria-label="Rating">
+      <div className="mt-2 flex gap-1" role="group" aria-label="Rating">
         {[1, 2, 3, 4, 5].map((value) => (
           <button
             key={value}
             type="button"
-            role="radio"
-            aria-checked={rating === value}
+            aria-pressed={rating === value}
             aria-label={`${value} star${value > 1 ? 's' : ''}`}
             onClick={() => setRating(value)}
             className="rounded-lg p-1"
@@ -68,7 +70,7 @@ export default function FeedbackForm({ eventId }) {
         <button
           type="submit"
           disabled={saving || (rating === null && !comment.trim())}
-          className="rounded-xl bg-[#58761B] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+          className="rounded-xl bg-[#58761B] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
         >
           {saving ? 'Saving...' : 'Submit feedback'}
         </button>
