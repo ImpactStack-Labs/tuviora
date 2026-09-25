@@ -55,12 +55,15 @@ def rate_event(parts, phone):
 
     # Africa's Talking joins inputs with "*", so rejoin a comment containing it.
     comment = "*".join(parts[3:]).strip()
-    submit_feedback(
-        registration.event,
-        registration.user,
-        rating=int(parts[2]),
-        comment="" if comment == "9" else comment,
-    )
+    try:
+        submit_feedback(
+            registration.event,
+            registration.user,
+            rating=int(parts[2]),
+            comment="" if comment == "9" else comment,
+        )
+    except Exception:
+        return reply("END", "Feedback is unavailable. Please try later.")
     return reply("END", "Thank you for your feedback.")
 
 

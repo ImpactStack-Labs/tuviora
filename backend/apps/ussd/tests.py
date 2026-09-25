@@ -1,4 +1,5 @@
 from datetime import date, time
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -246,4 +247,11 @@ class USSDFeedbackTests(TestCase):
         self.assertEqual(
             self.send(f"5*{self.event.pk}", phone="+256700000001"),
             "END No registration found for this event.",
+        )
+
+    @patch("apps.ussd.views.submit_feedback", side_effect=Exception("boom"))
+    def test_submit_feedback_error_gets_generic_reply(self, mock_submit_feedback):
+        self.assertEqual(
+            self.send(f"5*{self.event.pk}*4*9"),
+            "END Feedback is unavailable. Please try later.",
         )
