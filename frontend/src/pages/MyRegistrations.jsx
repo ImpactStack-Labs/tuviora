@@ -1,3 +1,4 @@
+import TuvioraLogo from '../components/TuvioraLogo'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, CalendarDays, MapPin, Ticket, Users } from 'lucide-react'
@@ -158,9 +159,7 @@ export default function MyRegistrations() {
     <main className="min-h-screen bg-[#F7F9F5] text-[#1A3F22]">
       <header className="border-b border-border-soft bg-white px-5 py-5">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
-          <Link to="/" className="text-2xl font-bold">
-            tuviora<span className="text-[#D99201]">.</span>
-          </Link>
+          <TuvioraLogo />
           <Link
             to="/events"
             className="inline-flex items-center gap-2 text-sm font-semibold text-[#58761B]"

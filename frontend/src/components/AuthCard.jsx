@@ -1,4 +1,4 @@
-import { CalendarDays } from 'lucide-react'
+import TuvioraLogo from './TuvioraLogo'
 
 export default function AuthCard({
   as: Container = 'div',
@@ -14,12 +14,8 @@ export default function AuthCard({
       <div className="w-full max-w-md rounded-3xl border border-border-soft bg-white p-8 shadow-sm sm:p-10">
         {backLink}
 
-        <div
-          className={`grid h-16 w-16 place-items-center rounded-2xl bg-[#EDF3E8] text-[#58761B] ${
-            backLink ? 'mt-8' : ''
-          }`}
-        >
-          <CalendarDays size={30} />
+        <div className={backLink ? 'mt-8' : ''}>
+          <TuvioraLogo imageClassName="h-12 w-auto max-w-[185px]" />
         </div>
 
         <p className="mt-7 text-sm font-semibold uppercase tracking-widest text-[#58761B]">

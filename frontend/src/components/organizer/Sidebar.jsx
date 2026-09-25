@@ -1,3 +1,4 @@
+import TuvioraLogo from '../TuvioraLogo'
 import { Link, NavLink } from 'react-router-dom'
 import { ArrowLeft, LogOut, UserRound } from 'lucide-react'
 import { navigation } from './navigation'
@@ -10,9 +11,9 @@ export default function Sidebar({
 }) {
   return (
     <div className="flex h-full flex-col bg-[#1A3F22] text-white">
-      <Link to="/" className="px-6 py-8 text-3xl font-bold">
-        tuviora<span className="text-[#D99201]">.</span>
-      </Link>
+      <div className="px-6 py-7">
+        <TuvioraLogo dark imageClassName="h-10 w-auto max-w-[160px]" />
+      </div>
 
       <p className="px-6 pb-4 text-xs font-semibold uppercase tracking-widest text-[#B8CBB8]">
         Organizer Workspace

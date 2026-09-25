@@ -93,7 +93,7 @@ export default function OrganizerLayout({ user, onLogout }) {
           <div className="flex items-center gap-2">
             <ApiStatus />
             <span className="hidden rounded-full bg-[#EDF3E8] px-4 py-2 text-xs font-semibold text-[#58761B] sm:inline-flex">
-              Foundation preview
+              Organizer workspace
             </span>
           </div>
         </header>

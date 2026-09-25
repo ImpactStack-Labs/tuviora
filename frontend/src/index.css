@@ -119,3 +119,77 @@ img { display:block; max-width:100%; }
 }
 
 /* tuviora-motion-end */
+
+
+/* tuviora-design-system-start */
+
+@theme {
+  --color-brand: #1A3F22;
+  --color-brand-hover: #31573A;
+  --color-brand-accent: #D99201;
+  --color-surface-soft: #F8F9F5;
+  --color-text-secondary: #526052;
+}
+
+.tuviora-container {
+  width: min(100% - 2.5rem, 80rem);
+  margin-inline: auto;
+}
+
+.tuviora-section {
+  padding-block: clamp(4rem, 7vw, 6.5rem);
+}
+
+.tuviora-button-primary,
+.tuviora-button-secondary {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  border-radius: 0.75rem;
+  padding: 0.8rem 1.5rem;
+  font-weight: 650;
+  text-decoration: none;
+  transition: background-color 200ms ease, transform 200ms ease;
+}
+
+.tuviora-button-primary {
+  background: #1A3F22;
+  color: white;
+}
+
+.tuviora-button-primary:hover {
+  background: #31573A;
+  transform: translateY(-2px);
+}
+
+.tuviora-button-secondary {
+  border: 1px solid #C6D4C3;
+  background: white;
+  color: #1A3F22;
+}
+
+.tuviora-button-secondary:hover {
+  background: #ECF1E9;
+}
+
+.tuviora-surface-card {
+  border: 1px solid #E1E8DC;
+  border-radius: 1rem;
+  background: white;
+  box-shadow: 0 4px 24px rgba(26, 63, 34, 0.035);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tuviora-button-primary,
+  .tuviora-button-secondary {
+    transition: none;
+  }
+
+  .tuviora-button-primary:hover {
+    transform: none;
+  }
+}
+
+/* tuviora-design-system-end */
