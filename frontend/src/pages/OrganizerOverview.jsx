@@ -76,6 +76,12 @@ export default function OrganizerOverview() {
 
         <section className="rounded-2xl border border-[#E3E9DF] bg-white p-8">
           <h2 className="text-xl font-bold">Needs your attention</h2>
+          <Link
+            to="/operations/incidents"
+            className="mt-3 inline-flex items-center gap-2 font-semibold text-[#58761B] hover:underline"
+          >
+            Manage incidents <ArrowRight size={18} />
+          </Link>
           <div className="flex min-h-56 flex-col items-center justify-center text-center">
             <ClipboardCheck size={36} className="text-[#58761B]" />
             <h3 className="mt-5 font-bold">Nothing to review yet</h3>

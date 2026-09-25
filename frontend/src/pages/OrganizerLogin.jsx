@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarDays, LockKeyhole, LogIn } from 'lucide-react'
-import { loginOrganizer } from '../lib/auth'
+import { getCurrentUser, loginOrganizer } from '../lib/auth'
 
 export default function OrganizerLogin({ onLogin }) {
   const [username, setUsername] = useState('')
@@ -15,7 +15,8 @@ export default function OrganizerLogin({ onLogin }) {
     setLoading(true)
 
     try {
-      const result = await loginOrganizer(username, password)
+      await loginOrganizer(username, password)
+      const result = await getCurrentUser()
       onLogin(result.user)
     } catch (err) {
       setError(err.message)

@@ -1,4 +1,4 @@
-import {
+import { AlertTriangle,
   LayoutDashboard,
   CalendarDays,
   ClipboardCheck,
@@ -19,6 +19,7 @@ export const navigation = [
   { name: 'Attendance', path: 'attendance', icon: ScanLine },
   { name: 'Payments', path: 'payments', icon: CreditCard },
   { name: 'Live Operations', path: 'live', icon: Radio },
+  { name: 'Incident Management', path: 'incidents', icon: AlertTriangle },
   { name: 'Communications', path: 'communications', icon: MessageSquare },
   { name: 'Feedback', path: 'feedback', icon: MessageSquare },
   { name: 'Analytics', path: 'analytics', icon: BarChart3 },
