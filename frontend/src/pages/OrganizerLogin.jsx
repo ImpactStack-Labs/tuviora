@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { loginOrganizer } from '../lib/auth'
+import { getCurrentUser, loginOrganizer } from '../lib/auth'
 import AuthCard from '../components/AuthCard'
 import CredentialsForm from '../components/CredentialsForm'
 
@@ -16,7 +16,8 @@ export default function OrganizerLogin({ onLogin }) {
     setLoading(true)
 
     try {
-      const result = await loginOrganizer(username, password)
+      await loginOrganizer(username, password)
+      const result = await getCurrentUser()
       onLogin(result.user)
     } catch (err) {
       setError(err.message)

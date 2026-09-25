@@ -68,13 +68,22 @@ export default function OrganizerOverview() {
         </section>
 
         <section className="rounded-2xl border border-border-soft bg-white p-8">
-          <h2 className="mb-5 text-xl font-bold">Needs your attention</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-xl font-bold">Needs your attention</h2>
+            <Link
+              to="/operations/incidents"
+              className="inline-flex items-center gap-2 font-semibold text-[#58761B] hover:underline"
+            >
+              Manage incidents <ArrowRight size={18} />
+            </Link>
+          </div>
           <EmptyState
             icon={ClipboardCheck}
             title="Nothing to review yet"
             description="Tasks and incidents will appear here."
             bordered={false}
           />
+
         </section>
       </div>
     </div>
