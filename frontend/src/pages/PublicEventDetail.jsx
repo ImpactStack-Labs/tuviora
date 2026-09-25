@@ -1,3 +1,4 @@
+import TuvioraLogo from '../components/TuvioraLogo'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getCurrentUser } from '../lib/auth'
@@ -211,11 +212,9 @@ export default function PublicEventDetail() {
 
   return (
     <main className="min-h-screen bg-[#F7F9F5] text-[#1A3F22]">
-      <header className="border-b border-border-soft bg-white px-5 py-5">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <Link to="/" className="text-2xl font-bold">
-            tuviora<span className="text-[#D99201]">.</span>
-          </Link>
+      <header className="sticky top-0 z-40 border-b border-border-soft bg-white/95 px-5 backdrop-blur-xl">
+        <div className="tuviora-container flex min-h-20 flex-wrap items-center justify-between gap-4 py-4">
+          <TuvioraLogo />
           <nav className="flex flex-wrap items-center gap-5">
             <Link
               to="/my-registrations"
@@ -234,7 +233,7 @@ export default function PublicEventDetail() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-5xl px-5 py-12">
+      <div className="mx-auto max-w-6xl px-5 py-8 sm:py-12">
         {loading ? (
           <LoadingRow label="Loading event..." />
         ) : error ? (
@@ -243,11 +242,11 @@ export default function PublicEventDetail() {
           </div>
         ) : event && (
           <div className="overflow-hidden rounded-3xl border border-border-soft bg-white shadow-sm">
-            <section className="bg-[#1A3F22] px-7 py-12 text-white sm:px-12">
+            <section className="bg-[#1A3F22] px-6 py-12 text-white sm:px-12 sm:py-16">
               <p className="text-sm font-semibold uppercase tracking-widest text-[#E9B64E]">
                 {event.category}
               </p>
-              <h1 className="mt-4 text-4xl font-bold sm:text-5xl">
+              <h1 className="mt-4 max-w-3xl text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
                 {event.name}
               </h1>
               <p className="mt-5 max-w-3xl leading-8 text-white/80">
@@ -255,7 +254,7 @@ export default function PublicEventDetail() {
               </p>
             </section>
 
-            <section className="grid gap-10 p-7 sm:p-12 md:grid-cols-2">
+            <section className="grid gap-10 p-6 sm:p-10 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)] lg:gap-14">
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold">Event details</h2>
 
@@ -284,7 +283,7 @@ export default function PublicEventDetail() {
                 )}
               </div>
 
-              <div className="rounded-2xl border border-border-soft bg-[#F7F9F5] p-7">
+              <div className="h-fit rounded-2xl border border-border-soft bg-[#F7F9F5] p-6 shadow-sm sm:p-8">
                 <h2 className="text-2xl font-bold">Join this event</h2>
                 {checkingSession ? (
                   <p role="status" className="mt-4 text-[#647064]">
@@ -305,7 +304,11 @@ export default function PublicEventDetail() {
                           {event.ticket_types.map((ticket) => (
                             <label
                               key={ticket.id}
-                              className="flex items-center justify-between rounded-xl border border-border-soft p-4"
+                              className={`flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-xl border p-4 transition-colors ${
+                                selectedTicketTypeId === ticket.id
+                                  ? 'border-[#58761B] bg-[#EDF3E8] ring-1 ring-[#58761B]/20'
+                                  : 'border-border-soft bg-white hover:border-[#B9C9B3]'
+                              }`}
                             >
                               <span className="flex items-center gap-3">
                                 <input
@@ -345,7 +348,7 @@ export default function PublicEventDetail() {
                           </p>
                         )}
 
-                        <div className="flex gap-4">
+                        <div className="flex flex-wrap gap-5 rounded-xl border border-border-soft bg-white p-4">
                           <label className="flex items-center gap-2">
                             <input
                               type="radio"
@@ -369,7 +372,7 @@ export default function PublicEventDetail() {
                             value={paymentPhone}
                             onChange={(event) => setPaymentPhone(event.target.value)}
                             placeholder="+256700123456"
-                            className="w-full rounded-xl border border-[#DCE5D8] bg-white px-4 py-3"
+                            className="min-h-12 w-full rounded-xl border border-[#DCE5D8] bg-white px-4 py-3 text-base focus:border-[#58761B] focus:outline-none focus:ring-2 focus:ring-[#58761B]/15"
                           />
                         )}
 

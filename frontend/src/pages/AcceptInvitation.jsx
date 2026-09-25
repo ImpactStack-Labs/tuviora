@@ -1,3 +1,4 @@
+import TuvioraLogo from '../components/TuvioraLogo'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -112,13 +113,7 @@ export default function AcceptInvitation() {
   return (
     <div className="min-h-screen bg-[#F7F9F5] px-5 py-12 text-[#1A3F22]">
       <div className="mx-auto max-w-lg">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-xl font-bold"
-        >
-          <CalendarDays size={25} className="text-[#58761B]" />
-          tuviora<span className="text-[#D99201]">.</span>
-        </Link>
+        <TuvioraLogo />
 
         <div className="mt-10 rounded-3xl border border-border-soft bg-white p-7 shadow-sm sm:p-10">
           <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#EDF3E8] text-[#58761B]">
