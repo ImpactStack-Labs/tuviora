@@ -148,7 +148,9 @@ Statuses: open, in_progress, resolved, closed.
 | POST | `/api/events/incidents/<incident_id>/ai-analysis/` | organizer | Generate or refresh an analysis: classification, suggested severity, priority, recommended actions and a draft message |
 | GET | `/api/events/incidents/<incident_id>/ai-analysis/detail/` | organizer | Fetch the stored analysis |
 | POST | `/api/events/incidents/<incident_id>/ai-analysis/approve/` | organizer | Approve a pending recommendation |
-| GET, POST | `/api/events/<event_id>/feedback/` | signed in | List or submit attendee feedback |
+| GET | `/api/events/<event_id>/feedback/` | organizer or manager | List attendee feedback |
+| POST | `/api/events/<event_id>/feedback/` | confirmed attendee | Submit or update your feedback: `rating` (1–5) and/or `comment`. `201` created, `200` updated |
+| GET | `/api/events/<event_id>/feedback/me/` | signed in | Your own feedback for the event (`404` if none) |
 | GET, POST | `/api/events/<event_id>/feedback/analysis/` | organizer | Fetch, or generate, an AI summary of the feedback |
 
 When `OPENAI_API_KEY` is missing or the provider fails, the AI endpoints

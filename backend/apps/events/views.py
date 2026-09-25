@@ -230,25 +230,47 @@ class EventIncidentDetailView(generics.RetrieveUpdateAPIView):
         return super().partial_update(request, *args, **kwargs)
 
 
-class FeedbackListCreateView(generics.ListCreateAPIView):
-    serializer_class = FeedbackSerializer
+class FeedbackListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        return Feedback.objects.filter(
-            event_id=self.kwargs["event_id"]
-        ).select_related("attendee", "event")
+    def get(self, request, event_id):
+        from .permissions import lead_event_or_deny
 
-    def perform_create(self, serializer):
-        event = get_object_or_404(
-            Event,
-            id=self.kwargs["event_id"],
+        event = lead_event_or_deny(event_id, request.user)
+        feedback = event.feedback.select_related("attendee")
+        return Response(FeedbackSerializer(feedback, many=True).data)
+
+    def post(self, request, event_id):
+        from .services.feedback import FeedbackNotAllowed, submit_feedback
+
+        event = get_object_or_404(Event, pk=event_id)
+        serializer = FeedbackSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            feedback, created = submit_feedback(
+                event,
+                request.user,
+                rating=serializer.validated_data.get("rating"),
+                comment=serializer.validated_data.get("comment", "").strip(),
+            )
+        except FeedbackNotAllowed as exc:
+            raise PermissionDenied(str(exc))
+
+        return Response(
+            FeedbackSerializer(feedback).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
 
-        serializer.save(
-            event=event,
-            attendee=self.request.user,
+
+class MyFeedbackView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, event_id):
+        feedback = get_object_or_404(
+            Feedback, event_id=event_id, attendee=request.user,
         )
+        return Response(FeedbackSerializer(feedback).data)
 
 
 class FeedbackAnalysisView(generics.GenericAPIView):

@@ -28,6 +28,7 @@ from .ai_views import (
 from .views import (
     FeedbackAnalysisView,
     FeedbackListCreateView,
+    MyFeedbackView,
     EventIncidentDetailView,
     EventIncidentListCreateView,
     EventListCreateView,
@@ -134,6 +135,11 @@ urlpatterns = [
         "<int:event_id>/feedback/",
         FeedbackListCreateView.as_view(),
         name="event-feedback",
+    ),
+    path(
+        "<int:event_id>/feedback/me/",
+        MyFeedbackView.as_view(),
+        name="my-event-feedback",
     ),
     path(
         "<int:event_id>/feedback/analysis/",
