@@ -66,7 +66,11 @@ incidents); organizers get the full workspace
 | Attendance | `EventAttendance` (QR check-in) |
 | Live Operations | `LiveOperations` |
 | Incident Management | `IncidentManagement` (incl. critical-incident team calls) |
-| Payments, Communications, Feedback, Analytics | `OrganizerModule` placeholder — not yet connected to the backend |
+| Payments | `PaymentsPage` |
+| Budget | `BudgetPage` |
+| Communications | `Communications` (SMS announcements) |
+| Feedback | `FeedbackPage` (incl. AI summary) |
+| Analytics | `AnalyticsPage` |
 
 ## Source layout
 

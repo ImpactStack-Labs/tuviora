@@ -54,6 +54,8 @@ Organizers and managers reach it through
 
 - Payment confirmation, sent when the MarzPay webhook confirms a
   registration.
+- Organizer announcements (POST /api/events/<event_id>/announcements/) and the daily send_event_reminders command.
+- USSD registration confirmation (option 4), sent only when the account has SMS consent.
 
 (Readiness task assignments are notified by email, not SMS.)
 

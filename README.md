@@ -40,13 +40,17 @@ Organizers create readiness tasks and assign them to team members. Members see o
 
 The organizer and team members check attendees in by scanning the ticket QR code or entering the ticket reference. Only confirmed tickets can be checked in, and each ticket only once.
 
+### Budget, payments and analytics
+
+Organizers track planned versus actual costs per budget line (with vendor and paid status), see ticket revenue and pending payments, and view registrations per day, by ticket type, check-in rate and average rating.
+
 ### Live operations and incidents
 
 Team members report incidents by category and severity during an event. The organizer and managers update incident status. For **critical** incidents they can trigger automated voice calls to the organizer and event managers (behind `VOICE_CRITICAL_CALLS_ENABLED`).
 
 ### AI assistance
 
-Using OpenAI through the backend API (no frontend screens yet), organizers can:
+Using OpenAI through the backend API (feedback summary on the Feedback page; incident analysis via the API), organizers can:
 
 - request an AI analysis of an incident (classification, suggested severity, priority, recommended actions and a draft message), which they must approve before it is acted on;
 - collect attendee feedback and generate an AI summary of it.
@@ -57,15 +61,15 @@ Venue search and map components (Leaflet) support location-based event informati
 
 ### Accessible channels (Africa's Talking)
 
-- **SMS:** registration welcome, payment confirmation and team messages; always opt-in and disabled by default. See [SMS integration](docs/sms-integration.md).
-- **USSD:** look up a published event and check your own registration status from a basic phone. See [USSD sandbox](docs/ussd-sandbox.md).
+- **SMS:** registration welcome, payment confirmation, organizer announcements, daily event reminders and team messages; always opt-in and disabled by default. See [SMS integration](docs/sms-integration.md).
+- **USSD:** look up a published event, register for a free event, check your registration status and rate an event from a basic phone. See [USSD sandbox](docs/ussd-sandbox.md).
 - **Voice:** a multilingual voice menu (English, Kiswahili, Luganda) using Sunbird AI text-to-speech.
 
 The private voice conference backend is still in development: organizer-controlled conference management, membership-based access and one-time access codes exist, but live conference calling is not ready. See [Voice Services](backend/apps/voice_services/README.md).
 
 ### Planned capabilities
 
-Expanded USSD features (such as staff incident reporting), organizer-approved attendee announcements, conference frontend controls and deployment. Integrations should not be treated as production-ready until live end-to-end testing is complete.
+Expanded USSD features (such as staff incident reporting), conference frontend controls and deployment. Integrations should not be treated as production-ready until live end-to-end testing is complete.
 
 ## Technology stack
 
@@ -214,7 +218,7 @@ Keep the backend running in its own terminal while developing features that use 
 | Django | `DJANGO_DEBUG`, `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS` | `DEBUG` is off unless `DJANGO_DEBUG=True`; with it off, Django refuses to start without `DJANGO_SECRET_KEY`. Allowed hosts default to `localhost,127.0.0.1`. |
 | Email | `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL`, `EMAIL_HOST`, `EMAIL_PORT` | Sending verification emails. If unset, emails are printed to the Django console. |
 | AI | `OPENAI_API_KEY`, `OPENAI_MODEL`, `SUNBIRD_API_KEY` | Incident and feedback analysis, and voice text-to-speech |
-| Africa's Talking | `SMS_ENABLED`, `AFRICASTALKING_USERNAME`, `AFRICASTALKING_API_KEY`, `AFRICASTALKING_SENDER_ID` | SMS; voice calls also use the username and API key |
+| Africa's Talking | `SMS_ENABLED`, `AFRICASTALKING_USERNAME`, `AFRICASTALKING_API_KEY`, `AFRICASTALKING_SENDER_ID`, `USSD_CALLBACK_TOKEN` | SMS; voice calls also use the username and API key. Whenever the USSD callback is publicly reachable, set `USSD_CALLBACK_TOKEN` and append `?token=<value>` to the Africa's Talking callback URL (USSD options 4 and 5 write data). |
 | Voice | `AT_VOICE_NUMBER`, `AT_VOICE_CALLBACK_URL`, `REDIS_URL`, `VOICE_CONFERENCE_ENABLED`, `VOICE_CONFERENCE_MAX_PARTICIPANTS`, `VOICE_CRITICAL_CALLS_ENABLED` | Conferences and critical-incident calls |
 | Payments | `MARZPAY_*` | MarzPay collections and webhook verification |
 
@@ -279,7 +283,7 @@ Key references:
 - Move to PostgreSQL for deployment.
 - Live-test MarzPay collections and webhooks end to end.
 - Complete USSD staff incident reporting (requires staff authentication).
-- Add organizer-approved attendee announcements and targeted incident updates over SMS.
+- Add targeted incident updates over SMS.
 - Authenticate incoming voice callbacks and finish private conference calling.
 - Build the conference frontend controls.
 - Complete deployment and end-to-end application testing.

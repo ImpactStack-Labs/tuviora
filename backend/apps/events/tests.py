@@ -8,6 +8,7 @@ from rest_framework.test import APITestCase
 
 from .models import (
     AIFeedbackAnalysis,
+    EventRegistration,
     Feedback,
     Event,
     Incident,
@@ -693,6 +694,13 @@ class FeedbackAPITests(APITestCase):
             event_format=Event.EventFormat.PHYSICAL,
             venue="Test Venue",
             status=Event.Status.PUBLISHED,
+        )
+
+        # Submitting feedback now requires a confirmed registration.
+        EventRegistration.objects.create(
+            event=self.event,
+            user=self.user,
+            status=EventRegistration.Status.CONFIRMED,
         )
 
         self.client.force_authenticate(user=self.user)

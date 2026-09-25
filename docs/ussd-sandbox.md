@@ -17,7 +17,14 @@ the test, and keep `DEBUG` off (`DJANGO_DEBUG=False`, which requires
 `DJANGO_SECRET_KEY`) while the tunnel is public. In Africa's Talking sandbox, create
 a USSD channel on the shared `*384#` code. Set its Callback URL to:
 
-    https://YOUR-TUNNEL-HOST/api/ussd/callback/
+    https://YOUR-TUNNEL-HOST/api/ussd/callback/?token=YOUR-TOKEN
+
+Whenever the callback is publicly reachable, set `USSD_CALLBACK_TOKEN` in
+`backend/.env` to a long random value and append `?token=<value>` to the
+Callback URL, as above: options 4 and 5 write data (registrations and
+feedback). Requests without the matching token get a 403 with "END Unable to
+process this session." When `USSD_CALLBACK_TOKEN` is empty (local testing),
+no token is required.
 
 Launch the web simulator and dial the full code assigned to the channel.
 A temporary tunnel address changes when restarted; update the Callback URL and
@@ -25,7 +32,7 @@ allowed hostname when that happens. Stop the tunnel after testing.
 
 ## Flows to check
 
-- The opening menu lists event information, registration, staff reporting, and exit.
+- The opening menu lists event information, registration check, staff reporting, registering, rating, and exit.
 - Choose `1`, then enter the ID of a published event in the local database.
   The response shows its public name, date, time, and venue.
 - An unknown event ID ends with "Published event not found."
@@ -40,6 +47,14 @@ allowed hostname when that happens. Stop the tunnel after testing.
 - Staff incident reporting currently ends without accepting a report. It
   requires accepted event membership and a staff PIN or equivalent
   authentication.
+- Choose `4`, enter the ID of a free published event, then `1` to confirm.
+  The caller's phone must be saved as the SMS number on a Tuviora account;
+  otherwise the reply tells them to sign up online. Paid events reply with the
+  web registration link. With SMS consent, a confirmation SMS follows.
+- Choose `5`, enter the ID of an event where the caller's phone has a confirmed
+  registration, rate 1–5, then type a comment or `9` to skip. The feedback
+  appears on the organizer's Feedback page. Callers without a confirmed
+  registration get the same generic "No registration found for this event."
 
 The simulator test uses a local development database. Creating a channel does
 not deploy the Django backend. Do not commit tunnel hostnames, credentials, or

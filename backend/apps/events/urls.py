@@ -1,3 +1,10 @@
+from .finance_views import (
+    BudgetItemDetailView,
+    BudgetItemListCreateView,
+    EventPaymentListView,
+    EventSummaryView,
+)
+from .announcement_views import EventAnnouncementView
 from .ticket_checkin_views import TicketCheckInView
 from .registration_ticket_views import MyRegistrationTicketView
 from .public_views import PublicEventDetailView, PublicEventListView
@@ -27,6 +34,7 @@ from .ai_views import (
 from .views import (
     FeedbackAnalysisView,
     FeedbackListCreateView,
+    MyFeedbackView,
     EventIncidentDetailView,
     EventIncidentListCreateView,
     EventListCreateView,
@@ -105,6 +113,31 @@ urlpatterns = [
         name="event-invitation-accept",
     ),
     path(
+        "<int:event_id>/announcements/",
+        EventAnnouncementView.as_view(),
+        name="event-announcements",
+    ),
+    path(
+        "<int:event_id>/budget/",
+        BudgetItemListCreateView.as_view(),
+        name="event-budget",
+    ),
+    path(
+        "<int:event_id>/budget/<int:pk>/",
+        BudgetItemDetailView.as_view(),
+        name="event-budget-item",
+    ),
+    path(
+        "<int:event_id>/summary/",
+        EventSummaryView.as_view(),
+        name="event-summary",
+    ),
+    path(
+        "<int:event_id>/payments/",
+        EventPaymentListView.as_view(),
+        name="event-payments",
+    ),
+    path(
         "<int:event_id>/team/",
         EventTeamView.as_view(),
         name="event-team",
@@ -128,6 +161,11 @@ urlpatterns = [
         "<int:event_id>/feedback/",
         FeedbackListCreateView.as_view(),
         name="event-feedback",
+    ),
+    path(
+        "<int:event_id>/feedback/me/",
+        MyFeedbackView.as_view(),
+        name="my-event-feedback",
     ),
     path(
         "<int:event_id>/feedback/analysis/",

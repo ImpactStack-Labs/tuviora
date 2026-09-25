@@ -381,6 +381,13 @@ class FeedbackSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def validate(self, attrs):
+        if attrs.get("rating") is None and not attrs.get("comment", "").strip():
+            raise serializers.ValidationError(
+                "Give a rating, a comment, or both."
+            )
+        return attrs
+
     def validate_rating(self, value):
         if value is not None and not 1 <= value <= 5:
             raise serializers.ValidationError(

@@ -221,6 +221,8 @@ AFRICASTALKING_API_KEY = os.getenv(
 AFRICASTALKING_SENDER_ID = os.getenv(
     "AFRICASTALKING_SENDER_ID", ""
 )
+# Optional shared secret for the USSD callback (?token=...); empty = open.
+USSD_CALLBACK_TOKEN = os.getenv("USSD_CALLBACK_TOKEN", "").strip()
 
 # MarzPay payment collection (https://wallet.wearemarz.com)
 MARZPAY_BASE_URL = os.getenv(

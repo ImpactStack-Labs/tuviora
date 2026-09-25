@@ -101,6 +101,17 @@ when the user is already registered or the event is full. Check-in returns
 `409` when the ticket has already been used and `403` when the registration
 is not confirmed. See [Payments](../payments/README.md).
 
+## Budget, payments and analytics
+
+| Method | Endpoint | Access | Purpose |
+| --- | --- | --- | --- |
+| GET, POST | `/api/events/<event_id>/budget/` | organizer or manager | Budget lines: `category`, `description`, `vendor`, `planned_amount`, `actual_amount`, `paid` |
+| GET, PUT, PATCH, DELETE | `/api/events/<event_id>/budget/<id>/` | organizer or manager | Manage one line |
+| GET | `/api/events/<event_id>/summary/` | organizer or manager | Registrations (by status, day, ticket type), attendance and check-in rate, payments collected and pending, budget planned/actual/unpaid/net, average rating |
+| GET | `/api/events/<event_id>/payments/` | organizer | Payment list with attendee, amount, method and status |
+
+Budget categories: venue, catering, equipment, marketing, transport, staff, other. Net = payments collected − actual spend.
+
 ## Team
 
 | Method | Endpoint | Access | Purpose |
@@ -110,6 +121,14 @@ is not confirmed. See [Payments](../payments/README.md).
 | POST | `/api/events/<event_id>/invitations/<invitation_id>/revoke/` | organizer | Revoke a pending invitation |
 | POST | `/api/events/invitations/accept/` | signed in (the invitee) | Accept using the invitation token |
 | POST | `/api/events/<event_id>/team/message/` | organizer or manager | SMS the organizer and all accepted members: `{"message": "..."}` |
+
+## Announcements
+
+| Method | Endpoint | Access | Purpose |
+| --- | --- | --- | --- |
+| GET, POST | `/api/events/<event_id>/announcements/` | organizer or manager | Announcement history, or SMS `{"message": "..."}` (1–480 chars) to confirmed, opted-in attendees |
+
+`python manage.py send_event_reminders` texts confirmed attendees of events happening tomorrow; run it daily from cron. Running it twice on the same day sends once.
 
 ## Readiness tasks
 
@@ -140,7 +159,9 @@ Statuses: open, in_progress, resolved, closed.
 | POST | `/api/events/incidents/<incident_id>/ai-analysis/` | organizer | Generate or refresh an analysis: classification, suggested severity, priority, recommended actions and a draft message |
 | GET | `/api/events/incidents/<incident_id>/ai-analysis/detail/` | organizer | Fetch the stored analysis |
 | POST | `/api/events/incidents/<incident_id>/ai-analysis/approve/` | organizer | Approve a pending recommendation |
-| GET, POST | `/api/events/<event_id>/feedback/` | signed in | List or submit attendee feedback |
+| GET | `/api/events/<event_id>/feedback/` | organizer or manager | List attendee feedback |
+| POST | `/api/events/<event_id>/feedback/` | confirmed attendee | Submit or update your feedback: `rating` (1–5) and/or `comment`. `201` created, `200` updated |
+| GET | `/api/events/<event_id>/feedback/me/` | signed in | Your own feedback for the event (`404` if none) |
 | GET, POST | `/api/events/<event_id>/feedback/analysis/` | organizer | Fetch, or generate, an AI summary of the feedback |
 
 When `OPENAI_API_KEY` is missing or the provider fails, the AI endpoints

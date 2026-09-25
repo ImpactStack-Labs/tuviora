@@ -429,13 +429,19 @@ class Feedback(models.Model):
         ],
     )
 
-    comment = models.TextField()
+    comment = models.TextField(blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["event", "attendee"],
+                name="unique_event_attendee_feedback",
+            ),
+        ]
 
     def __str__(self):
         return f"Feedback for {self.event.name}"
@@ -703,3 +709,82 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.reference} ({self.status})"
+
+
+class EventAnnouncement(models.Model):
+    """An SMS sent to an event's confirmed attendees."""
+
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name="announcements",
+    )
+    # Null means an automatic reminder from send_event_reminders.
+    sent_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sent_announcements",
+    )
+    message = models.TextField()
+    submitted = models.PositiveIntegerField(default=0)
+    failed = models.PositiveIntegerField(default=0)
+    skipped = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return f"Announcement for {self.event.name}"
+
+
+class BudgetItem(models.Model):
+    """A planned or actual event cost, optionally owed to a vendor."""
+
+    class Category(models.TextChoices):
+        VENUE = "venue", "Venue"
+        CATERING = "catering", "Catering"
+        EQUIPMENT = "equipment", "Equipment"
+        MARKETING = "marketing", "Marketing"
+        TRANSPORT = "transport", "Transport"
+        STAFF = "staff", "Staff"
+        OTHER = "other", "Other"
+
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name="budget_items",
+    )
+    category = models.CharField(max_length=20, choices=Category.choices)
+    description = models.CharField(max_length=200)
+    vendor = models.CharField(max_length=120, blank=True)
+    planned_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+    )
+    actual_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+    )
+    paid = models.BooleanField(default=False)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="budget_items",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["category", "id"]
+
+    def __str__(self):
+        return f"{self.description} ({self.event.name})"

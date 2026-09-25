@@ -9,6 +9,7 @@ import {
 } from '../lib/events'
 import { formatEventDate } from '../lib/format'
 import LoadingRow from '../components/LoadingRow'
+import FeedbackForm from '../components/FeedbackForm'
 
 function isPastEvent(event) {
   const today = new Intl.DateTimeFormat('en-CA', {
@@ -151,6 +152,7 @@ export default function MyRegistrations() {
             </button>
           )}
         </div>
+        {confirmed && <FeedbackForm eventId={item.event.id} />}
       </article>
     )
   }
