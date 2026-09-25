@@ -76,3 +76,19 @@ class BudgetAPITests(APITestCase):
         self.client.force_authenticate(user=self.organizer)
         response = self.client.patch(f"{self.url}{foreign.id}/", {"paid": True}, format="json")
         self.assertEqual(response.status_code, 404)
+
+    def test_negative_planned_amount_rejected(self):
+        self.client.force_authenticate(user=self.manager)
+        response = self.client.post(
+            self.url, {**self.item, "planned_amount": "-1.00"}, format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_negative_actual_amount_rejected(self):
+        self.client.force_authenticate(user=self.manager)
+        created = self.client.post(self.url, self.item, format="json")
+        detail = f"{self.url}{created.data['id']}/"
+        response = self.client.patch(
+            detail, {"actual_amount": "-5.00"}, format="json",
+        )
+        self.assertEqual(response.status_code, 400)

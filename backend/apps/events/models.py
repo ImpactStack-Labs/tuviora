@@ -760,9 +760,17 @@ class BudgetItem(models.Model):
     category = models.CharField(max_length=20, choices=Category.choices)
     description = models.CharField(max_length=200)
     vendor = models.CharField(max_length=120, blank=True)
-    planned_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    planned_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+    )
     actual_amount = models.DecimalField(
-        max_digits=12, decimal_places=2, null=True, blank=True,
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
     )
     paid = models.BooleanField(default=False)
     created_by = models.ForeignKey(
