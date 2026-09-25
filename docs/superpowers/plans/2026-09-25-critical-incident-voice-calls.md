@@ -26,14 +26,11 @@ incident UI). No new dependencies.
 
 See design spec: `docs/superpowers/specs/2026-09-25-team-voice-notifications-design.md` (Part 2).
 
-**Scope note:** this plan is backend-only. There is no incident UI in the
-frontend at all yet — `OrganizerOverview.jsx` has a placeholder "Open
-incidents" stat card with no data behind it, and no list or detail view
-exists to attach a "Call the team" button to. Building one is a separate,
-larger project (incident list/detail UI, likely alongside real CRUD for
-`Incident`, which the backend already has and the frontend doesn't use at
-all). This plan ships a fully working, fully tested API endpoint; wiring a
-button to it is a follow-up once that UI exists.
+**Scope note:** this plan was originally written backend-only, because at
+the time `frontend/src/pages/IncidentManagement.jsx` didn't exist locally.
+`origin/dev` has since gained it (incident list per event, with
+organizer/manager status controls) — Task 6 below adds the "Call the team"
+button to that real page.
 
 **Deviations from the spec, decided while mapping it onto real files:**
 - **Endpoint prefix:** the spec wrote `/api/events/<event_id>/incidents/<incident_id>/call-team/`. The actual convention for voice-triggered actions on an event (see `apps/voice_services/urls.py`'s `events/<int:event_id>/conference/...` routes, mounted at `/api/voice/`) is to live under `/api/voice/`. This plan uses `/api/voice/events/<event_id>/incidents/<incident_id>/call-team/` instead — same behavior, correct prefix.
@@ -960,4 +957,203 @@ git add backend/apps/voice_services/incident_call_views.py \
         backend/apps/voice_services/urls.py \
         backend/apps/voice_services/test_incident_call_api.py
 git commit -m "Add critical-incident call-team API endpoint"
+```
+
+---
+
+### Task 6: "Call the team" button on Incident Management
+
+**Files:**
+- Modify: `frontend/src/lib/team.js` (add `callTeamForIncident`)
+- Modify: `frontend/src/pages/IncidentManagement.jsx` (organizer-facing incident list)
+- Modify: `frontend/src/pages/TeamWorkspace.jsx` (manager-facing incident list)
+
+**Interfaces:**
+- Consumes: `POST /api/voice/events/<event_id>/incidents/<incident_id>/call-team/` from Task 5
+- Produces: `callTeamForIncident(eventId, incidentId) -> Promise<{dialed, failed, skipped}>`
+
+**Why two files:** `IncidentManagement.jsx` gets its event list from
+`getEvents()`, which only returns events the current user organizes
+(`EventListCreateView.get_queryset` filters `organizer=request.user`) — a
+manager can't reach this page at all. The only place a manager currently
+sees incidents is `TeamWorkspace.jsx`'s "Event incident reports" section,
+which already gates its status-update buttons with
+`selectedMembership?.role === 'manager'`. Since the whole point of this
+feature is organizer **and** manager access, the button needs to go in
+both places — putting it only in `IncidentManagement.jsx` would make it
+practically organizer-only, contradicting the approved design.
+
+- [ ] **Step 1: Add the API client function**
+
+In `frontend/src/lib/team.js`, add:
+
+```javascript
+export function callTeamForIncident(eventId, incidentId) {
+  return apiRequest(
+    `/api/voice/events/${eventId}/incidents/${incidentId}/call-team/`,
+    { method: 'POST' },
+  )
+}
+```
+
+- [ ] **Step 2: Add state, handler, and the button**
+
+In `frontend/src/pages/IncidentManagement.jsx`, add to the top-of-file
+imports:
+
+```javascript
+import { callTeamForIncident } from '../lib/team'
+```
+
+Add new state alongside the existing `useState` calls (after `refreshKey`):
+
+```javascript
+  const [callingId, setCallingId] = useState(null)
+```
+
+Add this handler alongside `updateStatus`:
+
+```javascript
+  async function handleCallTeam(incident) {
+    if (callingId !== null) return
+
+    setCallingId(incident.id)
+    setError('')
+    setNotice('')
+
+    try {
+      const result = await callTeamForIncident(eventId, incident.id)
+      setNotice(
+        `Called ${result.dialed} team member`
+        + `${result.dialed === 1 ? '' : 's'}.`,
+      )
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setCallingId(null)
+    }
+  }
+```
+
+In the incident `<article>` block, immediately after the closing `</div>`
+of the status-buttons row (the one mapping over `STATUSES`) and before the
+closing `</article>`, add:
+
+```jsx
+              {incident.severity === 'critical' && (
+                <div className="mt-3 border-t border-[#EDF0EA] pt-4">
+                  <button
+                    type="button"
+                    disabled={callingId !== null}
+                    onClick={() => handleCallTeam(incident)}
+                    className="rounded-lg bg-[#B42318] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    {callingId === incident.id
+                      ? 'Calling...'
+                      : 'Call the team'}
+                  </button>
+                </div>
+              )}
+```
+
+No client-side role check is added on this page — it has no existing
+pattern for one (the organizer-only `EventTeamView` equivalent doesn't
+gate its form client-side either), and the backend already enforces
+organizer/manager via the 403 in `IncidentCallTeamView`. A click from a
+disallowed role surfaces that 403's message through the existing
+`catch (err) { setError(err.message) }` path.
+
+- [ ] **Step 3: Add the same control to `TeamWorkspace.jsx`, manager-gated**
+
+This page already restricts incident status updates to managers with
+`{selectedMembership?.role === 'manager' && (...)}` — reuse that exact
+gate for the call button, since organizers don't use this page at all
+(it's driven by `user.team_memberships`, which is empty for an
+organizer's own events).
+
+Add to the top-of-file imports:
+
+```javascript
+import { callTeamForIncident } from '../lib/team'
+```
+
+Add new state alongside the existing incident-related `useState` calls:
+
+```javascript
+  const [callingIncidentId, setCallingIncidentId] = useState(null)
+```
+
+Add this handler alongside `updateIncidentStatus`:
+
+```javascript
+  async function handleCallTeam(incident) {
+    if (callingIncidentId !== null) return
+
+    setCallingIncidentId(incident.id)
+    setError('')
+    setNotice('')
+
+    try {
+      const result = await callTeamForIncident(
+        selectedEventId,
+        incident.id,
+      )
+      setNotice(
+        `Called ${result.dialed} team member`
+        + `${result.dialed === 1 ? '' : 's'}.`,
+      )
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setCallingIncidentId(null)
+    }
+  }
+```
+
+Inside the `{selectedMembership?.role === 'manager' && (...)}` block, add
+the button after the closing `</div>` of the status-buttons row it
+already renders (`.map(([value, label]) => ...)`), still inside that same
+conditional, only when the incident is critical:
+
+```jsx
+                      {incident.severity === 'critical' && (
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            disabled={callingIncidentId !== null}
+                            onClick={() => handleCallTeam(incident)}
+                            className="rounded-lg bg-[#B42318] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                          >
+                            {callingIncidentId === incident.id
+                              ? 'Calling...'
+                              : 'Call the team'}
+                          </button>
+                        </div>
+                      )}
+```
+
+- [ ] **Step 4: Manually verify in the browser**
+
+Sign in as an organizer with an event that has a `critical`-severity
+incident, open Incident Management, and confirm the button appears only
+on that incident's card. Then sign in as a manager on the same event via
+the team workspace, and confirm the button appears there too, on the same
+incident, gated correctly (a `member`-role account should not see it at
+all, matching the existing status-button gating).
+
+With `VOICE_CRITICAL_CALLS_ENABLED=false` (the local default), click it
+from either page and confirm the 503's message ("Critical incident
+calling is not enabled.") surfaces in the error banner. Set
+`VOICE_CRITICAL_CALLS_ENABLED=true`, restart the backend, click again,
+and confirm a notice banner shows a dialed count (it will be 0 without
+real Africa's Talking credentials and a phone number on file — confirm
+that shows as `dialed: 0` in the notice, not a crash or 500).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add frontend/src/lib/team.js \
+        frontend/src/pages/IncidentManagement.jsx \
+        frontend/src/pages/TeamWorkspace.jsx
+git commit -m "Add Call the team button for critical incidents"
 ```
