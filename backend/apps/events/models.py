@@ -738,3 +738,45 @@ class EventAnnouncement(models.Model):
 
     def __str__(self):
         return f"Announcement for {self.event.name}"
+
+
+class BudgetItem(models.Model):
+    """A planned or actual event cost, optionally owed to a vendor."""
+
+    class Category(models.TextChoices):
+        VENUE = "venue", "Venue"
+        CATERING = "catering", "Catering"
+        EQUIPMENT = "equipment", "Equipment"
+        MARKETING = "marketing", "Marketing"
+        TRANSPORT = "transport", "Transport"
+        STAFF = "staff", "Staff"
+        OTHER = "other", "Other"
+
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name="budget_items",
+    )
+    category = models.CharField(max_length=20, choices=Category.choices)
+    description = models.CharField(max_length=200)
+    vendor = models.CharField(max_length=120, blank=True)
+    planned_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    actual_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+    )
+    paid = models.BooleanField(default=False)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="budget_items",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["category", "id"]
+
+    def __str__(self):
+        return f"{self.description} ({self.event.name})"

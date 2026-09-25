@@ -1,3 +1,4 @@
+from .finance_views import BudgetItemDetailView, BudgetItemListCreateView
 from .announcement_views import EventAnnouncementView
 from .ticket_checkin_views import TicketCheckInView
 from .registration_ticket_views import MyRegistrationTicketView
@@ -110,6 +111,16 @@ urlpatterns = [
         "<int:event_id>/announcements/",
         EventAnnouncementView.as_view(),
         name="event-announcements",
+    ),
+    path(
+        "<int:event_id>/budget/",
+        BudgetItemListCreateView.as_view(),
+        name="event-budget",
+    ),
+    path(
+        "<int:event_id>/budget/<int:pk>/",
+        BudgetItemDetailView.as_view(),
+        name="event-budget-item",
     ),
     path(
         "<int:event_id>/team/",
