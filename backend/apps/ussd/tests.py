@@ -361,3 +361,10 @@ class USSDRegistrationTests(TestCase):
             self.send(f"4*{self.event.pk}*1"),
             "END Published event not found.",
         )
+
+    @patch("apps.ussd.views.get_public_event", side_effect=Exception("db down"))
+    def test_lookup_error_gets_generic_reply(self, mock_get_public_event):
+        self.assertEqual(
+            self.send(f"4*{self.event.pk}"),
+            "END Registration is unavailable. Please try later.",
+        )

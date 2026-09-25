@@ -80,32 +80,36 @@ def register_event(parts, phone):
     if not parts[1].isdigit():
         return reply("END", "Invalid event ID. Please dial again.")
 
-    site = settings.FRONTEND_BASE_URL
-    preference = (
-        SMSPreference.objects.select_related("user")
-        .filter(phone_number=phone)
-        .first()
-    )
-    if preference is None:
-        return reply(
-            "END",
-            "No Tuviora account uses this phone. "
-            f"Sign up at {site}/signup and add this number.",
+    site = settings.FRONTEND_BASE_URL.rstrip("/")
+
+    try:
+        preference = (
+            SMSPreference.objects.select_related("user")
+            .filter(phone_number=phone)
+            .first()
         )
-
-    event = get_public_event(parts[1])
-    if event is None:
-        return reply("END", "Published event not found.")
-
-    ticket_types = TicketType.objects.filter(event=event, is_active=True)
-    ticket_type = None
-    if ticket_types.exists():
-        ticket_type = ticket_types.filter(price=0).order_by("price", "pk").first()
-        if ticket_type is None:
+        if preference is None:
             return reply(
                 "END",
-                f"This event requires payment. Register at {site}/events/{event.pk}.",
+                "No Tuviora account uses this phone. "
+                f"Sign up at {site}/signup and add this number.",
             )
+
+        event = get_public_event(parts[1])
+        if event is None:
+            return reply("END", "Published event not found.")
+
+        ticket_types = TicketType.objects.filter(event=event, is_active=True)
+        ticket_type = None
+        if ticket_types.exists():
+            ticket_type = ticket_types.filter(price=0).order_by("price", "pk").first()
+            if ticket_type is None:
+                return reply(
+                    "END",
+                    f"This event requires payment. Register at {site}/events/{event.pk}.",
+                )
+    except Exception:
+        return reply("END", "Registration is unavailable. Please try later.")
 
     if len(parts) == 2:
         return reply(
