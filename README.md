@@ -16,7 +16,7 @@ Tuviora brings these workflows together in one platform while exploring accessib
 
 ### Event discovery and registration
 
-Attendees can browse published upcoming events, view event details, sign up (with email verification), register for events, cancel a registration and view all their registrations in My Registrations.
+Attendees can browse published upcoming events, view event details, sign up (accounts can sign in only after verifying their email), register for events, cancel a registration and view all their registrations in My Registrations.
 
 Events can offer ticket types with prices. Free registrations are confirmed immediately; paid registrations stay `payment_pending` until payment completes. Confirmed attendees receive a ticket with a QR code.
 
@@ -26,7 +26,7 @@ Paid registrations are collected through MarzPay by Mobile Money or card. Regist
 
 ### Event organization
 
-Organizers create, manage and publish events from the operations workspace (`/operations`), which includes an overview, My Events, event creation, registrations and ticket-type management.
+Organizers create, manage and publish events from the operations workspace (`/operations`), which includes an overview, My Events, event creation, registrations and ticket-type management. Each published event has a signup QR code (in My Events → View details, downloadable as PNG) that opens its public registration page.
 
 ### Team collaboration
 
@@ -46,7 +46,7 @@ Organizers track planned versus actual costs per budget line (with vendor and pa
 
 ### Live operations and incidents
 
-Team members report incidents by category and severity during an event. The organizer and managers update incident status. For **critical** incidents they can trigger automated voice calls to the organizer and event managers (behind `VOICE_CRITICAL_CALLS_ENABLED`).
+The organizer (on Incident Management) and team members (in the Team Workspace) report incidents by category and severity. The organizer and managers update incident status. For **critical** incidents they can press **Call the team**, which voice-calls the organizer and every manager with a phone number on file (behind `VOICE_CRITICAL_CALLS_ENABLED`). Calls are placed on demand, not automatically.
 
 ### AI assistance
 
@@ -216,15 +216,22 @@ Keep the backend running in its own terminal while developing features that use 
 | Group | Variables | Needed for |
 | --- | --- | --- |
 | Django | `DJANGO_DEBUG`, `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS` | `DEBUG` is off unless `DJANGO_DEBUG=True`; with it off, Django refuses to start without `DJANGO_SECRET_KEY`. Allowed hosts default to `localhost,127.0.0.1`. |
-| Email | `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL`, `EMAIL_HOST`, `EMAIL_PORT` | Sending verification emails. If unset, emails are printed to the Django console. |
+| Email | `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL`, `EMAIL_HOST`, `EMAIL_PORT`, `SSL_CERT_FILE` | Verification, invitation and task emails. If any of the first three is unset, emails are printed to the Django console. For Brevo, use the **SMTP login** and an **SMTP key** (not your account password) and a verified sender. If TLS fails with `CERTIFICATE_VERIFY_FAILED` (common with python.org Python on macOS), set `SSL_CERT_FILE` to the path printed by `python -c "import certifi; print(certifi.where())"`. |
 | AI | `OPENAI_API_KEY`, `OPENAI_MODEL`, `SUNBIRD_API_KEY` | Incident and feedback analysis, and voice text-to-speech |
-| Africa's Talking | `SMS_ENABLED`, `AFRICASTALKING_USERNAME`, `AFRICASTALKING_API_KEY`, `AFRICASTALKING_SENDER_ID`, `USSD_CALLBACK_TOKEN` | SMS; voice calls also use the username and API key. Whenever the USSD callback is publicly reachable, set `USSD_CALLBACK_TOKEN` and append `?token=<value>` to the Africa's Talking callback URL (USSD options 4 and 5 write data). |
-| Voice | `AT_VOICE_NUMBER`, `AT_VOICE_CALLBACK_URL`, `REDIS_URL`, `VOICE_CONFERENCE_ENABLED`, `VOICE_CONFERENCE_MAX_PARTICIPANTS`, `VOICE_CRITICAL_CALLS_ENABLED` | Conferences and critical-incident calls |
+| Africa's Talking | `SMS_ENABLED`, `AFRICASTALKING_USERNAME`, `AFRICASTALKING_API_KEY`, `AFRICASTALKING_SENDER_ID`, `USSD_CALLBACK_TOKEN` | SMS and USSD, and voice unless the voice credentials below are set. Whenever the USSD callback is publicly reachable, set `USSD_CALLBACK_TOKEN` and append `?token=<value>` to the Africa's Talking callback URL (USSD options 4 and 5 write data). |
+| Voice | `AT_VOICE_USERNAME`, `AT_VOICE_API_KEY`, `AT_VOICE_NUMBER`, `AT_VOICE_CALLBACK_URL`, `REDIS_URL`, `VOICE_CONFERENCE_ENABLED`, `VOICE_CONFERENCE_MAX_PARTICIPANTS`, `VOICE_CRITICAL_CALLS_ENABLED` | Conferences and critical-incident calls. `AT_VOICE_USERNAME`/`AT_VOICE_API_KEY` let voice use a different Africa's Talking app (e.g. live) than SMS/USSD (e.g. sandbox); blank falls back to the shared credentials. The voice callback is set on the number in the Africa's Talking dashboard (`/api/voice/callback/`); `AT_VOICE_CALLBACK_URL` is not read by the code. |
 | Payments | `MARZPAY_*` | MarzPay collections and webhook verification |
 
 For local development, keep `DJANGO_DEBUG=True` from the example file. In any shared or public environment, set `DJANGO_DEBUG=False`, a unique `DJANGO_SECRET_KEY` and the real hostnames in `DJANGO_ALLOWED_HOSTS`.
 
 Voice conferencing must remain disabled until callback authentication, shared session infrastructure and live integration testing are complete.
+
+### Provider notes
+
+- **Africa's Talking sandbox** never reaches real phones: SMS and calls appear only in the Africa's Talking simulator for the recipient number. Real delivery needs a live app, wallet credit and, for SMS, preferably a sender ID.
+- **Callbacks** (USSD `/api/ussd/callback/?token=…`, voice `/api/voice/callback/`) must be publicly reachable. For local testing, expose port 8000 through a temporary HTTPS tunnel and add its hostname to `DJANGO_ALLOWED_HOSTS`; see [USSD sandbox](docs/ussd-sandbox.md). A quick tunnel's address changes on every restart.
+- **Critical-incident calls** are accepted by Africa's Talking as `Queued`; if the phone does not ring, check the session in the dashboard (usually wallet balance or an outbound-calling restriction on the number).
+- **MarzPay** returns `No collection services available for country UG` until the collection service is enabled on the account (a country wallet alone is not enough). Live mode charges real money.
 
 ## Running tests
 
