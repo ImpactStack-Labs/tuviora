@@ -19,8 +19,8 @@ def place_call(phone_number):
     VoiceCallError if the request fails or the provider does not report
     the call as queued.
     """
-    username = getattr(settings, "AFRICASTALKING_USERNAME", "")
-    api_key = getattr(settings, "AFRICASTALKING_API_KEY", "")
+    username = getattr(settings, "AT_VOICE_USERNAME", "")
+    api_key = getattr(settings, "AT_VOICE_API_KEY", "")
     voice_number = getattr(settings, "AT_VOICE_NUMBER", "")
 
     if not all((username, api_key, voice_number)):
@@ -29,8 +29,10 @@ def place_call(phone_number):
         )
 
     try:
-        africastalking.initialize(username, api_key)
-        response = africastalking.Voice.call(voice_number, [phone_number])
+        # Own client, not africastalking.initialize(): that swaps
+        # module globals shared with SMS, which may use another AT app.
+        voice = africastalking.VoiceService(username, api_key)
+        response = voice.call(voice_number, [phone_number])
 
         entries = response.get("entries", [])
 

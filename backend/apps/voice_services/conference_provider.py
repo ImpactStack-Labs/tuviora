@@ -40,12 +40,12 @@ def send_conference_command(
 
     username = getattr(
         settings,
-        "AFRICASTALKING_USERNAME",
+        "AT_VOICE_USERNAME",
         "",
     )
     api_key = getattr(
         settings,
-        "AFRICASTALKING_API_KEY",
+        "AT_VOICE_API_KEY",
         "",
     )
     phone_number = getattr(

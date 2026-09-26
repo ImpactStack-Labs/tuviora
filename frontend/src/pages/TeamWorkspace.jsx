@@ -11,6 +11,7 @@ import { callTeamForIncident } from '../lib/team'
 import StatCard from '../components/StatCard'
 import EmptyState from '../components/EmptyState'
 import LoadingRow from '../components/LoadingRow'
+import IncidentReportForm from '../components/IncidentReportForm'
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -34,11 +35,6 @@ export default function TeamWorkspace({ user, onLogout }) {
   )
   const [tasks, setTasks] = useState([])
   const [incidents, setIncidents] = useState([])
-  const [incidentTitle, setIncidentTitle] = useState('')
-  const [incidentDescription, setIncidentDescription] = useState('')
-  const [incidentCategory, setIncidentCategory] = useState('other')
-  const [incidentSeverity, setIncidentSeverity] = useState('medium')
-  const [submittingIncident, setSubmittingIncident] = useState(false)
   const [updatingIncidentId, setUpdatingIncidentId] = useState(null)
   const [callingIncidentId, setCallingIncidentId] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -119,41 +115,6 @@ export default function TeamWorkspace({ user, onLogout }) {
       setError(err.message)
     } finally {
       setSavingTaskId(null)
-    }
-  }
-
-  async function submitIncident(event) {
-    event.preventDefault()
-    if (!selectedEventId || submittingIncident) return
-
-    setSubmittingIncident(true)
-    setError('')
-    setNotice('')
-
-    try {
-      const created = await apiRequest(
-        `/api/events/${selectedEventId}/incidents/`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            title: incidentTitle.trim(),
-            description: incidentDescription.trim(),
-            category: incidentCategory,
-            severity: incidentSeverity,
-          }),
-        },
-      )
-
-      setIncidents((current) => [created, ...current])
-      setIncidentTitle('')
-      setIncidentDescription('')
-      setIncidentCategory('other')
-      setIncidentSeverity('medium')
-      setNotice('Incident reported successfully.')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setSubmittingIncident(false)
     }
   }
 
@@ -411,84 +372,14 @@ export default function TeamWorkspace({ user, onLogout }) {
             Tell your organizer about a problem affecting this event.
           </p>
 
-          <form
-            onSubmit={submitIncident}
-            className="mt-6 grid gap-4"
-          >
-            <label className="grid gap-2 text-sm font-semibold">
-              What happened?
-              <input
-                required
-                maxLength={255}
-                value={incidentTitle}
-                onChange={(event) =>
-                  setIncidentTitle(event.target.value)
-                }
-                placeholder="e.g. Registration desk needs assistance"
-                className="rounded-xl border border-[#DDE6D6] p-3"
-              />
-            </label>
-
-            <label className="grid gap-2 text-sm font-semibold">
-              Description
-              <textarea
-                required
-                rows={4}
-                value={incidentDescription}
-                onChange={(event) =>
-                  setIncidentDescription(event.target.value)
-                }
-                placeholder="Describe the problem and the help needed."
-                className="rounded-xl border border-[#DDE6D6] p-3"
-              />
-            </label>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-2 text-sm font-semibold">
-                Category
-                <select
-                  value={incidentCategory}
-                  onChange={(event) =>
-                    setIncidentCategory(event.target.value)
-                  }
-                  className="rounded-xl border border-[#DDE6D6] p-3"
-                >
-                  {[
-                    'network', 'power', 'venue', 'security',
-                    'attendance', 'payment', 'technical', 'other',
-                  ].map((category) => (
-                    <option key={category} value={category}>
-                      {category.charAt(0).toUpperCase() + category.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="grid gap-2 text-sm font-semibold">
-                Urgency
-                <select
-                  value={incidentSeverity}
-                  onChange={(event) =>
-                    setIncidentSeverity(event.target.value)
-                  }
-                  className="rounded-xl border border-[#DDE6D6] p-3"
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="critical">Critical</option>
-                </select>
-              </label>
-            </div>
-
-            <button
-              type="submit"
-              disabled={!selectedEventId || submittingIncident}
-              className="rounded-xl bg-[#1A3F22] px-5 py-3 font-semibold text-white disabled:opacity-50 sm:justify-self-start"
-            >
-              {submittingIncident ? 'Submitting...' : 'Submit report'}
-            </button>
-          </form>
+          <IncidentReportForm
+            eventId={selectedEventId}
+            onError={setError}
+            onCreated={(created) => {
+              setIncidents((current) => [created, ...current])
+              setNotice('Incident reported successfully.')
+            }}
+          />
         </section>
 
         <section className="mt-10">

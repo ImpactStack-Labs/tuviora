@@ -8,14 +8,14 @@ from .outbound_call_service import VoiceCallError, place_call
 
 
 @override_settings(
-    AFRICASTALKING_USERNAME="sandbox",
-    AFRICASTALKING_API_KEY="test-key",
+    AT_VOICE_USERNAME="live_app",
+    AT_VOICE_API_KEY="test-key",
     AT_VOICE_NUMBER="+256711000000",
 )
 class PlaceCallTests(TestCase):
     @patch("apps.voice_services.outbound_call_service.africastalking")
     def test_places_call_with_configured_number(self, mock_sdk):
-        mock_sdk.Voice.call.return_value = {
+        mock_sdk.VoiceService.return_value.call.return_value = {
             "entries": [
                 {
                     "phoneNumber": "+256700000001",
@@ -28,16 +28,17 @@ class PlaceCallTests(TestCase):
 
         place_call("+256700000001")
 
-        mock_sdk.initialize.assert_called_once_with(
-            "sandbox", "test-key",
+        mock_sdk.VoiceService.assert_called_once_with(
+            "live_app", "test-key",
         )
-        mock_sdk.Voice.call.assert_called_once_with(
+        mock_sdk.initialize.assert_not_called()
+        mock_sdk.VoiceService.return_value.call.assert_called_once_with(
             "+256711000000", ["+256700000001"],
         )
 
     @patch("apps.voice_services.outbound_call_service.africastalking")
     def test_rejected_call_raises_voice_call_error(self, mock_sdk):
-        mock_sdk.Voice.call.return_value = {
+        mock_sdk.VoiceService.return_value.call.return_value = {
             "entries": [
                 {
                     "phoneNumber": "+256700000001",
@@ -53,7 +54,7 @@ class PlaceCallTests(TestCase):
 
     @patch("apps.voice_services.outbound_call_service.africastalking")
     def test_provider_error_raises_voice_call_error(self, mock_sdk):
-        mock_sdk.Voice.call.side_effect = Exception("boom")
+        mock_sdk.VoiceService.return_value.call.side_effect = Exception("boom")
 
         with self.assertRaises(VoiceCallError):
             place_call("+256700000001")
