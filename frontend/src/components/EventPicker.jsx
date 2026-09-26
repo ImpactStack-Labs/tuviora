@@ -39,7 +39,7 @@ export default function EventPicker({ id, value, onChange, onError }) {
           onChange(events.find((ev) => String(ev.id) === e.target.value))
         }
         disabled={loading || !events.length}
-        className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 outline-none focus:border-[#58761B] sm:max-w-xl"
+        className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 focus:border-[#58761B] sm:max-w-xl"
       >
         {!events.length && (
           <option value="">{loading ? 'Loading events…' : 'No events available'}</option>

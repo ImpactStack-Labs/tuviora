@@ -14,7 +14,7 @@ import {
 
 const CATEGORIES = ['venue', 'catering', 'equipment', 'marketing', 'transport', 'staff', 'other']
 const EMPTY_ITEM = { category: 'venue', description: '', vendor: '', planned_amount: '', actual_amount: '' }
-const INPUT = 'rounded-xl border border-border-soft bg-white px-3 py-2 text-sm outline-none focus:border-[#58761B]'
+const INPUT = 'rounded-xl border border-border-soft bg-white px-3 py-2 text-sm focus:border-[#58761B]'
 
 export default function BudgetPage() {
   const [event, setEvent] = useState(null)

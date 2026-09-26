@@ -122,7 +122,9 @@ python manage.py test apps.voice_services
 ## Environment configuration
 
 - `AT_VOICE_NUMBER`: Africa's Talking voice number.
-- `AT_VOICE_CALLBACK_URL`: configured voice callback URL.
+- `AT_VOICE_CALLBACK_URL`: informational only; the code does not read it.
+  Set the callback on the voice number in the Africa's Talking dashboard
+  to `https://<public-host>/api/voice/callback/`.
 - `VOICE_CONFERENCE_ENABLED`: keep `false` until live integration is ready.
 - `VOICE_CONFERENCE_MAX_PARTICIPANTS`: conference participant limit.
 - `VOICE_CRITICAL_CALLS_ENABLED`: enables critical-incident calls.

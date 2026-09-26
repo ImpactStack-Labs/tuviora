@@ -59,13 +59,13 @@ incidents); organizers get the full workspace
 | Section | Page |
 | --- | --- |
 | Overview | `OrganizerOverview` |
-| My Events, create event | `MyEvents`, `CreateEvent` |
+| My Events, create event | `MyEvents` (incl. signup QR code), `CreateEvent` |
 | Event Readiness | `EventReadiness` (tasks) |
 | Event Team | `EventTeam` (invitations, team SMS) |
 | Registration | `EventRegistrations` |
 | Attendance | `EventAttendance` (QR check-in) |
 | Live Operations | `LiveOperations` |
-| Incident Management | `IncidentManagement` (incl. critical-incident team calls) |
+| Incident Management | `IncidentManagement` (report incidents, critical-incident team calls) |
 | Payments | `PaymentsPage` |
 | Budget | `BudgetPage` |
 | Communications | `Communications` (SMS announcements) |

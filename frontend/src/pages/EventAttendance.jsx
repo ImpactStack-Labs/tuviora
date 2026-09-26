@@ -169,7 +169,7 @@ export default function EventAttendance() {
               autoComplete="off"
               spellCheck={false}
               required
-              className="w-full rounded-xl border border-border-soft px-4 py-3 font-mono text-sm focus:border-[#58761B] focus:outline-none"
+              className="w-full rounded-xl border border-border-soft px-4 py-3 font-mono text-sm focus:border-[#58761B]"
             />
           </div>
 

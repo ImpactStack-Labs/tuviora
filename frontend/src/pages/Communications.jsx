@@ -123,7 +123,7 @@ export default function Communications() {
             rows={4}
             aria-label="Announcement message"
             placeholder="e.g. Doors open at 8am. Bring your ticket QR code."
-            className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 outline-none focus:border-[#58761B]"
+            className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 focus:border-[#58761B]"
           />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-text-muted">
