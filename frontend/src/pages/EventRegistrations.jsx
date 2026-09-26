@@ -144,7 +144,7 @@ export default function EventRegistrations() {
             setFilter('all')
           }}
           disabled={loadingEvents || !events.length}
-          className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 text-[#1A3F22] focus:border-[#58761B] focus:outline-none sm:max-w-xl"
+          className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 text-[#1A3F22] focus:border-[#58761B] sm:max-w-xl"
         >
           {!events.length && (
             <option value="">
@@ -230,7 +230,7 @@ export default function EventRegistrations() {
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search by attendee ID"
               aria-label="Search by attendee ID"
-              className="w-full rounded-xl border border-border-soft py-3 pl-10 pr-4 text-sm focus:border-[#58761B] focus:outline-none"
+              className="w-full rounded-xl border border-border-soft py-3 pl-10 pr-4 text-sm focus:border-[#58761B]"
             />
           </div>
           <select

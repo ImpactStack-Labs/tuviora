@@ -112,8 +112,8 @@ export default function PublicEvents() {
       </header>
 
       <main>
-        <section className="bg-[#1A3F22] px-5 py-14 text-white sm:py-20">
-          <div className="mx-auto max-w-7xl lg:px-3">
+        <section className="bg-[#1A3F22] py-14 text-white sm:py-20">
+          <div className="tuviora-container">
             <p className="text-sm font-bold uppercase tracking-[.18em] text-[#E9B64E]">
               Discover events
             </p>
@@ -190,7 +190,7 @@ export default function PublicEvents() {
               <p className="mb-6 text-sm font-medium text-[#647064]">
                 {visibleEvents.length} upcoming {visibleEvents.length === 1 ? 'event' : 'events'}
               </p>
-              <div className="grid max-w-5xl gap-6 md:grid-cols-2 xl:gap-8">
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 xl:gap-8">
                 {visibleEvents.map((event) => (
                   <article
                     key={event.id}
@@ -210,7 +210,7 @@ export default function PublicEvents() {
                         {event.description || 'Join us for this upcoming event.'}
                       </p>
 
-                      <div className="space-y-3 text-sm text-[#405642]">
+                      <div className="mb-6 space-y-3 text-sm text-[#405642]">
                         <p className="flex items-center gap-3">
                           <CalendarDays size={18} className="shrink-0 text-[#58761B]" />
                           {formatEventDate(event.date)}

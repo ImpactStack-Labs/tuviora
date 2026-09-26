@@ -64,7 +64,7 @@ export default function FeedbackForm({ eventId }) {
         rows={2}
         aria-label="Feedback comment"
         placeholder="What went well? What could be better?"
-        className="mt-3 w-full rounded-xl border border-border-soft px-4 py-3 text-sm outline-none focus:border-[#58761B]"
+        className="mt-3 w-full rounded-xl border border-border-soft px-4 py-3 text-sm focus:border-[#58761B]"
       />
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <button

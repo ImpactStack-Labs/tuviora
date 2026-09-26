@@ -119,7 +119,7 @@ export default function SignUp() {
                         autoComplete={field === 'first_name' ? 'given-name' : 'family-name'}
                         required
                         maxLength={150}
-                        className="mt-2 w-full rounded-xl border border-border-soft px-4 py-3 outline-none focus:border-[#58761B]"
+                        className="mt-2 w-full rounded-xl border border-border-soft px-4 py-3 focus:border-[#58761B]"
                       />
                     </label>
                   ))}
@@ -133,7 +133,7 @@ export default function SignUp() {
                     autoComplete="username"
                     required
                     maxLength={150}
-                    className="mt-2 w-full rounded-xl border border-border-soft px-4 py-3 outline-none focus:border-[#58761B]"
+                    className="mt-2 w-full rounded-xl border border-border-soft px-4 py-3 focus:border-[#58761B]"
                   />
                 </label>
 
@@ -145,7 +145,7 @@ export default function SignUp() {
                     onChange={(event) => update('email', event.target.value)}
                     autoComplete="email"
                     required
-                    className="mt-2 w-full rounded-xl border border-border-soft px-4 py-3 outline-none focus:border-[#58761B]"
+                    className="mt-2 w-full rounded-xl border border-border-soft px-4 py-3 focus:border-[#58761B]"
                   />
                 </label>
 
@@ -159,7 +159,7 @@ export default function SignUp() {
                       autoComplete="tel"
                       placeholder="+256700123456"
                       maxLength={16}
-                      className="mt-2 w-full rounded-xl border border-border-soft bg-white px-4 py-3 outline-none focus:border-[#58761B]"
+                      className="mt-2 w-full rounded-xl border border-border-soft bg-white px-4 py-3 focus:border-[#58761B]"
                     />
                   </label>
 
@@ -198,7 +198,7 @@ export default function SignUp() {
                         autoComplete={field === 'password' ? 'new-password' : 'new-password'}
                         required
                         minLength={8}
-                        className="mt-2 w-full rounded-xl border border-border-soft px-4 py-3 outline-none focus:border-[#58761B]"
+                        className="mt-2 w-full rounded-xl border border-border-soft px-4 py-3 focus:border-[#58761B]"
                       />
                     </label>
                   ))}

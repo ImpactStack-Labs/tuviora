@@ -689,7 +689,7 @@ export default function MyEvents() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search your events"
               aria-label="Search your events"
-              className="w-full rounded-xl border border-border-soft bg-white py-3 pl-10 pr-4 text-sm text-[#1A3F22] outline-none transition focus:border-[#58761B] focus:ring-2 focus:ring-[#58761B]/15"
+              className="w-full rounded-xl border border-border-soft bg-white py-3 pl-10 pr-4 text-sm text-[#1A3F22] transition focus:border-[#58761B] focus:ring-2 focus:ring-[#58761B]/15"
             />
           </div>
         </div>
