@@ -13,8 +13,8 @@ from .conference_provider import (
 
 
 @override_settings(
-    AFRICASTALKING_USERNAME="test_user",
-    AFRICASTALKING_API_KEY="test_api_key",
+    AT_VOICE_USERNAME="test_user",
+    AT_VOICE_API_KEY="test_api_key",
     AT_VOICE_NUMBER="+256700000000",
 )
 class ConferenceProviderTests(SimpleTestCase):
@@ -132,7 +132,7 @@ class ConferenceProviderTests(SimpleTestCase):
         mock_post.assert_not_called()
 
     @override_settings(
-        AFRICASTALKING_API_KEY="",
+        AT_VOICE_API_KEY="",
     )
     @patch("apps.voice_services.conference_provider.requests.post")
     def test_missing_credentials_makes_no_request(

@@ -245,7 +245,14 @@ MARZPAY_DEFAULT_COUNTRY = os.getenv(
     "MARZPAY_DEFAULT_COUNTRY", "UG"
 ).strip()
 
-# Africa's Talking Voice
+# Africa's Talking Voice. Voice can run on a different AT app than
+# SMS/USSD (e.g. live voice, sandbox SMS); blank = the shared credentials.
+AT_VOICE_USERNAME = (
+    os.getenv("AT_VOICE_USERNAME", "").strip() or AFRICASTALKING_USERNAME
+)
+AT_VOICE_API_KEY = (
+    os.getenv("AT_VOICE_API_KEY", "").strip() or AFRICASTALKING_API_KEY
+)
 AT_VOICE_NUMBER = os.getenv("AT_VOICE_NUMBER", "").strip()
 AT_VOICE_CALLBACK_URL = os.getenv(
     "AT_VOICE_CALLBACK_URL", ""

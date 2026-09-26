@@ -130,8 +130,10 @@ python manage.py test apps.voice_services
 - `REDIS_URL`: shared Redis connection for multi-instance session state
   and rate limiting.
 
-Africa's Talking credentials are read from `AFRICASTALKING_USERNAME`
-and `AFRICASTALKING_API_KEY`. Do not include credentials
+Voice uses `AT_VOICE_USERNAME` and `AT_VOICE_API_KEY`, falling back to
+`AFRICASTALKING_USERNAME` and `AFRICASTALKING_API_KEY` when blank. Set
+them to run voice on a different Africa's Talking app than SMS/USSD
+(e.g. live voice, sandbox SMS). Do not include credentials
 in callback URLs.
 
 A shared Redis cache and configured voice number are required by
