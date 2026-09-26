@@ -71,7 +71,7 @@ export default function EventTimezone({
         required
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-[#58761B] focus:ring-2 focus:ring-[#58761B]/20"
+        className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 transition focus:border-[#58761B] focus:ring-2 focus:ring-[#58761B]/20"
       >
         {EVENT_TIMEZONES.map((zone) => (
           <option key={zone.value} value={zone.value}>

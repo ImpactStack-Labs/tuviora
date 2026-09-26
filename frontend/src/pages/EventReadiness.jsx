@@ -464,7 +464,7 @@ export default function EventReadiness() {
                 setSelectedEventId(event.target.value)
                 setShowForm(false)
               }}
-              className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 text-[#1A3F22] outline-none focus:border-[#58761B]"
+              className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 text-[#1A3F22] focus:border-[#58761B]"
             >
               {events.map((event) => (
                 <option key={event.id} value={event.id}>

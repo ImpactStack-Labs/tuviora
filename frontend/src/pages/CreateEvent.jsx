@@ -33,7 +33,7 @@ const initialForm = {
 }
 
 const fieldClass =
-  'mt-2 w-full rounded-xl border border-border-soft bg-white px-4 py-3 text-[#1A3F22] outline-none transition focus:border-[#58761B] focus:ring-2 focus:ring-[#58761B]/20'
+  'mt-2 w-full rounded-xl border border-border-soft bg-white px-4 py-3 text-[#1A3F22] transition focus:border-[#58761B] focus:ring-2 focus:ring-[#58761B]/20'
 
 export default function CreateEvent() {
   const [form, setForm] = useState(initialForm)

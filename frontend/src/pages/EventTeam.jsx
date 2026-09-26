@@ -248,7 +248,7 @@ export default function EventTeam() {
             setNotice('')
           }}
           disabled={loadingEvents || !events.length}
-          className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 outline-none focus:border-[#58761B] sm:max-w-xl"
+          className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 focus:border-[#58761B] sm:max-w-xl"
         >
           {!events.length && <option value="">No events available</option>}
           {events.map((event) => (
@@ -283,7 +283,7 @@ export default function EventTeam() {
             rows={2}
             maxLength={480}
             aria-label="Message to team"
-            className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 outline-none focus:border-[#58761B]"
+            className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 focus:border-[#58761B]"
           />
           <button
             type="submit"
@@ -371,7 +371,7 @@ export default function EventTeam() {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="teammate@example.com"
-                    className="w-full rounded-xl border border-border-soft px-4 py-3 outline-none focus:border-[#58761B]"
+                    className="w-full rounded-xl border border-border-soft px-4 py-3 focus:border-[#58761B]"
                   />
                 </div>
                 <div>
@@ -382,7 +382,7 @@ export default function EventTeam() {
                     id="invite-role"
                     value={role}
                     onChange={(event) => setRole(event.target.value)}
-                    className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 outline-none focus:border-[#58761B]"
+                    className="w-full rounded-xl border border-border-soft bg-white px-4 py-3 focus:border-[#58761B]"
                   >
                     <option value="member">Team Member</option>
                     <option value="manager">Event Manager</option>

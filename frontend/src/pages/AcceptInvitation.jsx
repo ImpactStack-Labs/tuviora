@@ -196,7 +196,7 @@ export default function AcceptInvitation() {
                       required
                       value={username}
                       onChange={(event) => setUsername(event.target.value)}
-                      className="mt-2 w-full rounded-xl border border-border-soft px-4 py-3 outline-none focus:border-[#58761B]"
+                      className="mt-2 w-full rounded-xl border border-border-soft px-4 py-3 focus:border-[#58761B]"
                     />
                   </div>
 
@@ -216,7 +216,7 @@ export default function AcceptInvitation() {
                         required
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
-                        className="w-full rounded-xl border border-border-soft py-3 pl-12 pr-4 outline-none focus:border-[#58761B]"
+                        className="w-full rounded-xl border border-border-soft py-3 pl-12 pr-4 focus:border-[#58761B]"
                       />
                     </div>
                   </div>

@@ -24,7 +24,7 @@ export default function CredentialsForm({
           value={username}
           onChange={onUsernameChange}
           required
-          className="mt-2 w-full rounded-xl border border-border-soft px-4 py-3 outline-none focus:border-[#58761B]"
+          className="mt-2 w-full rounded-xl border border-border-soft px-4 py-3 focus:border-[#58761B]"
         />
       </div>
 
@@ -44,7 +44,7 @@ export default function CredentialsForm({
             value={password}
             onChange={onPasswordChange}
             required
-            className="w-full rounded-xl border border-border-soft py-3 pl-12 pr-4 outline-none focus:border-[#58761B]"
+            className="w-full rounded-xl border border-border-soft py-3 pl-12 pr-4 focus:border-[#58761B]"
           />
         </div>
       </div>
